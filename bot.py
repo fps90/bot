@@ -266,24 +266,41 @@ def show_admin_ids(message):
     admin_ids = "\n".join(str(admin) for admin in admins)
     bot.send_message(message.chat.id, f"قائمة الأدمنز الحالية:\n{admin_ids}")
 
-def send_email(email, password, to_email, subject, body, image_data):
-    msg = MIMEMultipart()
-    msg['From'] = email
-    msg['To'] = to_email
-    msg['Subject'] = subject
+def send_emails():
+    while sending_active:
+        email_list = admin_data[message.chat.id]['email_list']
+        password_list = admin_data[message.chat.id]['password_list']
+        subject = admin_data[message.chat.id].get('subject', '')
+        body = admin_data[message.chat.id].get('body', '')
+        image_data = admin_data[message.chat.id].get('image_data', None)
+        sleep_time = admin_data[message.chat.id].get('sleep_time', 4)
 
-    msg.attach(MIMEText(body, 'plain'))
+        for email, password in zip(email_list, password_list):
+            if not sending_active:
+                break
+            
+            # Start sending emails in parallel
+            threads = []
+            for recipient in emails:
+                thread = threading.Thread(target=send_email_thread, args=(email, password, recipient, subject, body, image_data))
+                thread.start()
+                threads.append(thread)
+            
+            # Wait for all threads to complete
+            for thread in threads:
+                thread.join()
+            
+            # Wait before sending the next batch
+            time.sleep(sleep_time)
+            
+            # If we broke from the inner loop due to an error, break from the outer loop as well
+            if not sending_active:
+                break
 
-    if image_data:
-        image = MIMEImage(image_data.read())
-        image.add_header('Content-ID', '<image1>')
-        msg.attach(image)
-        image_data.seek(0)
-
-    with smtplib.SMTP('smtp.gmail.com', 587) as server:
-        server.starttls()
-        server.login(email, password)
-        text = msg.as_string()
-        server.sendmail(email, to_email, text)
-
+def send_email_thread(email, password, recipient, subject, body, image_data):
+    try:
+        send_email(email, password, recipient, subject, body, image_data)
+    except Exception as e:
+        bot.send_message(message.chat.id, f"حدث خطأ أثناء إرسال الرسالة إلى {recipient} باستخدام البريد {email}: {e}")
+            
 bot.polling(none_stop=True)
