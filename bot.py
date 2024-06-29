@@ -15,35 +15,34 @@ DEVELOPER_ID2 = 6388638438
 admins = [DEVELOPER_ID1, DEVELOPER_ID2]
 
 admin_data = {}
-emails = ["abuse@telegram.org", "Support@telegram.org", "Security@telegram.org", "Dmca@telegram.org", "StopCA@telegram.org"]
-sleep_time = 4
-image_data = None
 sending_thread = None
 sending_active = False
+
+emails = ["abuse@telegram.org", "Support@telegram.org", "Security@telegram.org", "Dmca@telegram.org", "StopCA@telegram.org"]
 
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
     if message.chat.id not in admins:
         bot.send_message(message.chat.id, "- البوت خاص بالمشتركين - قم بمراسلة المطور ليتم اعطائك الوضع الـ vip @RR8R9 .")
         return
-
+    
     markup = types.InlineKeyboardMarkup()
-    markup.add(types.InlineKeyboardButton("أضف إيميلات", callback_data="add_email"))
+    markup.add(types.InlineKeyboardButton("أضف ايميلات", callback_data="add_emails"))
     markup.add(types.InlineKeyboardButton("أضف موضوع", callback_data="add_subject"))
-    markup.add(types.InlineKeyboardButton("أضف كليشة الإرسال", callback_data="add_body"))
+    markup.add(types.InlineKeyboardButton("أضف كليشة الارسال", callback_data="add_body"))
     markup.add(types.InlineKeyboardButton("أضف صورة", callback_data="add_image"))
     markup.add(types.InlineKeyboardButton("تعيين سليب", callback_data="set_sleep"))
     markup.add(types.InlineKeyboardButton("عرض المعلومات", callback_data="save_info"))
     markup.add(types.InlineKeyboardButton("مسح المعلومات", callback_data="clear_info"))
-    markup.add(types.InlineKeyboardButton("بدء الإرسال", callback_data="start_sending"))
+    markup.add(types.InlineKeyboardButton("بدء الارسال", callback_data="start_sending"))
     markup.add(types.InlineKeyboardButton("إيقاف الإرسال", callback_data="stop_sending"))
     bot.send_message(message.chat.id, "ok :", reply_markup=markup)
 
     if message.chat.id in [DEVELOPER_ID1, DEVELOPER_ID2]:
         admin_markup = types.InlineKeyboardMarkup()
-        admin_markup.add(types.InlineKeyboardButton("أضف أدمن", callback_data="add_admin"))
-        admin_markup.add(types.InlineKeyboardButton("إزالة أدمن", callback_data="remove_admin"))
-        admin_markup.add(types.InlineKeyboardButton("عرض الأدمنز", callback_data="show_admins"))
+        admin_markup.add(types.InlineKeyboardButton("أضف ادمن", callback_data="add_admin"))
+        admin_markup.add(types.InlineKeyboardButton("إزالة ادمن", callback_data="remove_admin"))
+        admin_markup.add(types.InlineKeyboardButton("عرض الادمنز", callback_data="show_admins"))
         bot.send_message(message.chat.id, "التحكم :", reply_markup=admin_markup)
 
 @bot.callback_query_handler(func=lambda call: True)
@@ -52,9 +51,9 @@ def handle_query(call):
         bot.answer_callback_query(call.id, "- البوت خاص بالمشتركين - قم بمراسلة المطور ليتم اعطائك الوضع الـ vip @RR8R9 .")
         return
 
-    if call.data == "add_email":
-        msg = bot.send_message(call.message.chat.id, "أرسل لي الإيميلات وكلمات المرور في الصيغة: email,password\nemail,password\n...")
-        bot.register_next_step_handler(msg, process_email_step)
+    if call.data == "add_emails":
+        msg = bot.send_message(call.message.chat.id, "أرسل لي قائمة الإيميلات وكلمات المرور في الصيغة: email1,password1;email2,password2;...")
+        bot.register_next_step_handler(msg, process_emails_step)
     elif call.data == "add_subject":
         msg = bot.send_message(call.message.chat.id, "أرسل لي موضوع الرسالة")
         bot.register_next_step_handler(msg, process_subject_step)
@@ -84,39 +83,22 @@ def handle_query(call):
     elif call.data == "show_admins" and call.message.chat.id in [DEVELOPER_ID1, DEVELOPER_ID2]:
         show_admin_ids(call.message)
 
-def clear_info(message):
+def process_emails_step(message):
     if message.chat.id not in admins:
         bot.send_message(message.chat.id, "- البوت خاص بالمشتركين - قم بمراسلة المطور ليتم اعطائك الوضع الـ vip @RR8R9 .")
         return
 
-    if message.chat.id in admin_data:
-        admin_data[message.chat.id].pop('email_list', None)
-        admin_data[message.chat.id].pop('password_list', None)
-        admin_data[message.chat.id].pop('subject', None)
-        admin_data[message.chat.id].pop('body', None)
-        admin_data[message.chat.id].pop('sleep_time', None)
-        admin_data[message.chat.id].pop('image_data', None)
-        bot.send_message(message.chat.id, "تم مسح جميع المعلومات بنجاح.")
-    else:
-        bot.send_message(message.chat.id, "لا توجد معلومات لحذفها.")
-
-def process_email_step(message):
-    if message.chat.id not in admins:
-        bot.send_message(message.chat.id, "- البوت خاص بالمشتركين - قم بمراسلة المطور ليتم اعطائك الوضع الـ vip @RR8R9 .")
-        return
-
+    email_data = message.text
     try:
-        email_password_pairs = message.text.strip().split('\n')
-        emails = []
-        passwords = []
-        for pair in email_password_pairs:
-            email, password = pair.split(',')
-            emails.append(email.strip())
-            passwords.append(password.strip())
-        admin_data[message.chat.id] = {'email_list': emails, 'password_list': passwords}
-        bot.send_message(message.chat.id, "تم حفظ الإيميلات وكلمات المرور بنجاح.")
+        email_password_pairs = [pair.split(',') for pair in email_data.split(';')]
+        email_list, password_list = zip(*email_password_pairs)
+        admin_data[message.chat.id] = {
+            'email_list': email_list,
+            'password_list': password_list
+        }
+        bot.send_message(message.chat.id, "تم حفظ قائمة الإيميلات وكلمات المرور بنجاح.")
     except ValueError:
-        bot.send_message(message.chat.id, "صيغة غير صحيحة. يرجى الإرسال بالصورة الصحيحة: email,password\nemail,password\n...")
+        bot.send_message(message.chat.id, "صيغة غير صحيحة. يرجى الإرسال بالصورة الصحيحة: email1,password1;email2,password2;...")
 
 def process_subject_step(message):
     if message.chat.id not in admins:
@@ -158,7 +140,6 @@ def process_sleep_step(message):
         bot.send_message(message.chat.id, "يرجى إدخال عدد صحيح للثواني.")
 
 def process_image_step(message):
-    global image_data
     if message.chat.id not in admins:
         bot.send_message(message.chat.id, "- البوت خاص بالمشتركين - قم بمراسلة المطور ليتم اعطائك الوضع الـ vip @RR8R9 .")
         return
@@ -209,24 +190,47 @@ def start_sending_emails(message):
     sending_active = True
     bot.send_message(message.chat.id, "بدء الإرسال...")
 
-    def send_emails():
-        while sending_active:
+    def send_email(email, password, to_email, subject, body, image_data):
+        msg = MIMEMultipart()
+        msg['From'] = email
+        msg['To'] = to_email
+        msg['Subject'] = subject
+
+        msg.attach(MIMEText(body, 'plain'))
+
+        if image_data:
+            image = MIMEImage(image_data.read())
+            image.add_header('Content-ID', '<image1>')
+            msg.attach(image)
+            image_data.seek(0)
+
+        try:
+            with smtplib.SMTP('smtp.gmail.com', 587) as server:
+                server.starttls()
+                server.login(email, password)
+                text = msg.as_string()
+                server.sendmail(email, to_email, text)
+        except Exception as e:
+            bot.send_message(message.chat.id, f"حدث خطأ أثناء الإرسال: {e}")
+
+    def send_email_thread(email, password, subject, body, image_data):
+        email_list = admin_data[message.chat.id]['email_list']
+        password_list = admin_data[message.chat.id]['password_list']
+
+        for to_email in emails:
             try:
-                email_list = admin_data[message.chat.id]['email_list']
-                password_list = admin_data[message.chat.id]['password_list']
-                subject = admin_data[message.chat.id].get('subject', '')
-                body = admin_data[message.chat.id].get('body', '')
-                image_data = admin_data[message.chat.id].get('image_data', None)
-                sleep_time = admin_data[message.chat.id].get('sleep_time', 4)
-
                 for email, password in zip(email_list, password_list):
-                    for recipient in emails:
-                        send_email(email, password, recipient, subject, body, image_data)
-                        time.sleep(sleep_time)
+                    send_email(email, password, to_email, subject, body, image_data)
+                    time.sleep(admin_data[message.chat.id].get('sleep_time', 4))
             except Exception as e:
-                bot.send_message(message.chat.id, f"حدث خطأ أثناء الإرسال: {e}")
+                bot.send_message(message.chat.id, f"حدث خطأ أثناء إرسال الرسالة إلى {to_email}: {e}")
 
-    sending_thread = threading.Thread(target=send_emails)
+    sending_thread = threading.Thread(target=send_email_thread,
+                                      args=(admin_data[message.chat.id]['email_list'],
+                                            admin_data[message.chat.id]['password_list'],
+                                            admin_data[message.chat.id].get('subject', ''),
+                                            admin_data[message.chat.id].get('body', ''),
+                                            admin_data[message.chat.id].get('image_data', None)))
     sending_thread.start()
 
 def stop_sending_emails(message):
@@ -266,41 +270,4 @@ def show_admin_ids(message):
     admin_ids = "\n".join(str(admin) for admin in admins)
     bot.send_message(message.chat.id, f"قائمة الأدمنز الحالية:\n{admin_ids}")
 
-def send_emails():
-    while sending_active:
-        email_list = admin_data[message.chat.id]['email_list']
-        password_list = admin_data[message.chat.id]['password_list']
-        subject = admin_data[message.chat.id].get('subject', '')
-        body = admin_data[message.chat.id].get('body', '')
-        image_data = admin_data[message.chat.id].get('image_data', None)
-        sleep_time = admin_data[message.chat.id].get('sleep_time', 4)
-
-        for email, password in zip(email_list, password_list):
-            if not sending_active:
-                break
-            
-            # Start sending emails in parallel
-            threads = []
-            for recipient in emails:
-                thread = threading.Thread(target=send_email_thread, args=(email, password, recipient, subject, body, image_data))
-                thread.start()
-                threads.append(thread)
-            
-            # Wait for all threads to complete
-            for thread in threads:
-                thread.join()
-            
-            # Wait before sending the next batch
-            time.sleep(sleep_time)
-            
-            # If we broke from the inner loop due to an error, break from the outer loop as well
-            if not sending_active:
-                break
-
-def send_email_thread(email, password, recipient, subject, body, image_data):
-    try:
-        send_email(email, password, recipient, subject, body, image_data)
-    except Exception as e:
-        bot.send_message(message.chat.id, f"حدث خطأ أثناء إرسال الرسالة إلى {recipient} باستخدام البريد {email}: {e}")
-            
 bot.polling(none_stop=True)
