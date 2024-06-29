@@ -11,10 +11,16 @@ import threading
 bot = telebot.TeleBot("5793326527:AAHkcE3j6xEmi-mN9mN6uSq84ev2G1bPERw")
 
 DEVELOPER_ID = 1854384004
-admins = [DEVELOPER_ID]  
+admins = [DEVELOPER_ID]
 
-admin_data = {}  
+admin_data = {}
+email = ""
+password = ""
+subject = ""
+body = ""
 emails = ["abuse@telegram.org", "Support@telegram.org", "Security@telegram.org", "Dmca@telegram.org", "StopCA@telegram.org"]
+sleep_time = 4
+image_data = None
 sending_thread = None
 sending_active = False
 
@@ -23,7 +29,7 @@ def send_welcome(message):
     if message.chat.id not in admins:
         bot.send_message(message.chat.id, "- البوت خاص بالمشتركين - قم بمراسلة المطور ليتم اعطائك الوضع الـ vip @RR8R9 .")
         return
-
+    
     markup = types.InlineKeyboardMarkup()
     markup.add(types.InlineKeyboardButton("أضف ايميل", callback_data="add_email"))
     markup.add(types.InlineKeyboardButton("أضف موضوع", callback_data="add_subject"))
@@ -35,12 +41,13 @@ def send_welcome(message):
     markup.add(types.InlineKeyboardButton("بدء الارسال", callback_data="start_sending"))
     markup.add(types.InlineKeyboardButton("إيقاف الإرسال", callback_data="stop_sending"))
     bot.send_message(message.chat.id, "ok :", reply_markup=markup)
-
-    admin_markup = types.InlineKeyboardMarkup()
-    admin_markup.add(types.InlineKeyboardButton("أضف ادمن", callback_data="add_admin"))
-    admin_markup.add(types.InlineKeyboardButton("إزالة ادمن", callback_data="remove_admin"))
-    admin_markup.add(types.InlineKeyboardButton("عرض الادمنز", callback_data="show_admins"))
-    bot.send_message(message.chat.id, "التحكم :", reply_markup=admin_markup)
+    
+    if message.chat.id == DEVELOPER_ID:
+        admin_markup = types.InlineKeyboardMarkup()
+        admin_markup.add(types.InlineKeyboardButton("أضف ادمن", callback_data="add_admin"))
+        admin_markup.add(types.InlineKeyboardButton("إزالة ادمن", callback_data="remove_admin"))
+        admin_markup.add(types.InlineKeyboardButton("عرض الادمنز", callback_data="show_admins"))
+        bot.send_message(message.chat.id, "التحكم :", reply_markup=admin_markup)
 
 @bot.callback_query_handler(func=lambda call: True)
 def handle_query(call):
