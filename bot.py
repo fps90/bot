@@ -11,16 +11,10 @@ import threading
 bot = telebot.TeleBot("5793326527:AAHkcE3j6xEmi-mN9mN6uSq84ev2G1bPERw")
 
 DEVELOPER_ID = 1854384004
-admins = [DEVELOPER_ID]
+admins = [DEVELOPER_ID]  
 
-admin_data = {}
-email = ""
-password = ""
-subject = ""
-body = ""
+admin_data = {}  
 emails = ["abuse@telegram.org", "Support@telegram.org", "Security@telegram.org", "Dmca@telegram.org", "StopCA@telegram.org"]
-sleep_time = 4
-image_data = None
 sending_thread = None
 sending_active = False
 
@@ -42,17 +36,11 @@ def send_welcome(message):
     markup.add(types.InlineKeyboardButton("إيقاف الإرسال", callback_data="stop_sending"))
     bot.send_message(message.chat.id, "ok :", reply_markup=markup)
 
-@bot.message_handler(commands=['admin'])
-def admin_panel(message):
-    if message.chat.id not in admins:
-        bot.send_message(message.chat.id, "- البوت خاص بالمشتركين - قم بمراسلة المطور ليتم اعطائك الوضع الـ vip @RR8R9 .")
-        return
-
-    markup = types.InlineKeyboardMarkup()
-    markup.add(types.InlineKeyboardButton("أضف ادمن", callback_data="add_admin"))
-    markup.add(types.InlineKeyboardButton("إزالة ادمن", callback_data="remove_admin"))
-    markup.add(types.InlineKeyboardButton("عرض الادمنز", callback_data="show_admins"))
-    bot.send_message(message.chat.id, "التحكم :", reply_markup=markup)
+    admin_markup = types.InlineKeyboardMarkup()
+    admin_markup.add(types.InlineKeyboardButton("أضف ادمن", callback_data="add_admin"))
+    admin_markup.add(types.InlineKeyboardButton("إزالة ادمن", callback_data="remove_admin"))
+    admin_markup.add(types.InlineKeyboardButton("عرض الادمنز", callback_data="show_admins"))
+    bot.send_message(message.chat.id, "التحكم :", reply_markup=admin_markup)
 
 @bot.callback_query_handler(func=lambda call: True)
 def handle_query(call):
@@ -170,14 +158,23 @@ def process_image_step(message):
         file_info = bot.get_file(photo_id)
         file = bot.download_file(file_info.file_path)
         image_data = BytesIO(file)
-        if message.chat.id not in admins:
+        if message.chat.id in admin_data:
+            admin_data[message.chat.id]['image_data'] = image_data
+        else:
+            admin_data[message.chat.id] = {'image_data': image_data}
+        bot.send_message(message.chat.id, "تم حفظ الصورة بنجاح.")
+    else:
+        bot.send_message(message.chat.id, "يرجى إرسال صورة.")
+
+def display_info(message):
+    if message.chat.id not in admins:
         bot.send_message(message.chat.id, "- البوت خاص بالمشتركين - قم بمراسلة المطور ليتم اعطائك الوضع الـ vip @RR8R9 .")
         return
 
     if message.chat.id not in admin_data:
         bot.send_message(message.chat.id, "لم تقم بإضافة أي معلومات بعد.")
         return
-
+         
     admin_info = admin_data.get(message.chat.id, {})
     info = (
         f"الإيميل: {admin_info.get('email', 'لم يتم إضافته')}\n"
@@ -196,7 +193,7 @@ def add_admin(message):
         if new_admin_id not in admins:
             admins.append(new_admin_id)
             admin_data[new_admin_id] = {}
-            bot.send_message(message.chat.id, f"تمت إضافة {new_admin_id} كأدمن بنجاح.")
+            bot.send_message(message.chat.id, f"تمت إضافة {new_admin_id} كأدمن.")
         else:
             bot.send_message(message.chat.id, f"{new_admin_id} هو بالفعل أدمن.")
     except ValueError:
@@ -239,7 +236,7 @@ def start_sending_emails(message):
     sending_thread.start()
 
 def send_emails(chat_id):
-    global sending_active, sleep_time, image_data
+    global sending_active, image_data
     admin_info = admin_data.get(chat_id, {})
     email = admin_info.get('email')
     password = admin_info.get('password')
@@ -299,5 +296,5 @@ def stop_sending_emails(message):
     if sending_thread:
         sending_thread.join()
     bot.send_message(message.chat.id, "تم إيقاف الإرسال.")
-    
+
 bot.polling(none_stop=True)
