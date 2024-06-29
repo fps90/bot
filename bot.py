@@ -11,10 +11,9 @@ import threading
 bot = telebot.TeleBot("5793326527:AAHkcE3j6xEmi-mN9mN6uSq84ev2G1bPERw")
 
 DEVELOPER_ID = 1854384004
-admins = [DEVELOPER_ID]  
+admins = [DEVELOPER_ID]
 
-
-admin_data = {}  
+admin_data = {}
 email = ""
 password = ""
 subject = ""
@@ -30,7 +29,7 @@ def send_welcome(message):
     if message.chat.id not in admins:
         bot.send_message(message.chat.id, "- البوت خاص بالمشتركين - قم بمراسلة المطور ليتم اعطائك الوضع الـ vip @RR8R9 .")
         return
-    
+
     markup = types.InlineKeyboardMarkup()
     markup.add(types.InlineKeyboardButton("أضف ايميل", callback_data="add_email"))
     markup.add(types.InlineKeyboardButton("أضف موضوع", callback_data="add_subject"))
@@ -43,11 +42,17 @@ def send_welcome(message):
     markup.add(types.InlineKeyboardButton("إيقاف الإرسال", callback_data="stop_sending"))
     bot.send_message(message.chat.id, "ok :", reply_markup=markup)
 
-markup = types.InlineKeyboardMarkup()
-markup.add(types.InlineKeyboardButton("أضف ادمن", callback_data="add_admin"))
-markup.add(types.InlineKeyboardButton("إزالة ادمن", callback_data="remove_admin"))
-markup.add(types.InlineKeyboardButton("عرض الادمنز", callback_data="show_admins"))
-bot.send_message(message.chat.id, "التحكم :", reply_markup=markup)@bot.callback_query_handler(func=lambda call: True) def handle_query(call): if call.message.chat.id not in admins: bot.answer_callback_query(call.id, "لا يمكنك استخدام هذا البوت.") return
+@bot.message_handler(commands=['admin'])
+def admin_panel(message):
+    if message.chat.id not in admins:
+        bot.send_message(message.chat.id, "- البوت خاص بالمشتركين - قم بمراسلة المطور ليتم اعطائك الوضع الـ vip @RR8R9 .")
+        return
+
+    markup = types.InlineKeyboardMarkup()
+    markup.add(types.InlineKeyboardButton("أضف ادمن", callback_data="add_admin"))
+    markup.add(types.InlineKeyboardButton("إزالة ادمن", callback_data="remove_admin"))
+    markup.add(types.InlineKeyboardButton("عرض الادمنز", callback_data="show_admins"))
+    bot.send_message(message.chat.id, "التحكم :", reply_markup=markup)
 
 @bot.callback_query_handler(func=lambda call: True)
 def handle_query(call):
@@ -117,7 +122,7 @@ def process_email_step(message):
 
 def process_subject_step(message):
     if message.chat.id not in admins:
-        bot.send_message(message.chat.id, "- - البوت خاص بالمشتركين - قم بمراسلة المطور ليتم اعطائك الوضع الـ vip @RR8R9 .")
+        bot.send_message(message.chat.id, "- البوت خاص بالمشتركين - قم بمراسلة المطور ليتم اعطائك الوضع الـ vip @RR8R9 .")
         return
 
     subject = message.text
@@ -129,7 +134,7 @@ def process_subject_step(message):
 
 def process_body_step(message):
     if message.chat.id not in admins:
-        bot.send_message(message.chat.id, "-- البوت خاص بالمشتركين - قم بمراسلة المطور ليتم اعطائك الوضع الـ vip @RR8R9 .")
+        bot.send_message(message.chat.id, "- البوت خاص بالمشتركين - قم بمراسلة المطور ليتم اعطائك الوضع الـ vip @RR8R9 .")
         return
 
     body = message.text
@@ -165,17 +170,8 @@ def process_image_step(message):
         file_info = bot.get_file(photo_id)
         file = bot.download_file(file_info.file_path)
         image_data = BytesIO(file)
-        if message.chat.id in admin_data:
-            admin_data[message.chat.id]['image_data'] = image_data
-        else:
-            admin_data[message.chat.id] = {'image_data': image_data}
-        bot.send_message(message.chat.id, "تم حفظ الصورة بنجاح.")
-    else:
-        bot.send_message(message.chat.id, "يرجى إرسال صورة.")
-
-def display_info(message):
-    if message.chat.id not in admins:
-        bot.send_message(message.chat.id, "لا يمكنك استخدام هذا البوت.")
+        if message.chat.id not in admins:
+        bot.send_message(message.chat.id, "- البوت خاص بالمشتركين - قم بمراسلة المطور ليتم اعطائك الوضع الـ vip @RR8R9 .")
         return
 
     if message.chat.id not in admin_data:
@@ -200,6 +196,8 @@ def add_admin(message):
         if new_admin_id not in admins:
             admins.append(new_admin_id)
             admin_data[new_admin_id] = {}
+            bot.send_message(message.chat.id, f"تمت إضافة {new_admin_id} كأدمن بنجاح.")
+        else:
             bot.send_message(message.chat.id, f"{new_admin_id} هو بالفعل أدمن.")
     except ValueError:
         bot.send_message(message.chat.id, "يرجى إدخال معرف صحيح.")
