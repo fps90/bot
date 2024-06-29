@@ -41,7 +41,13 @@ def send_welcome(message):
     markup.add(types.InlineKeyboardButton("مسح المعلومات", callback_data="clear_info"))
     markup.add(types.InlineKeyboardButton("بدء الارسال", callback_data="start_sending"))
     markup.add(types.InlineKeyboardButton("إيقاف الإرسال", callback_data="stop_sending"))
-    bot.send_message(message.chat.id, "اختر أحد الخيارات:", reply_markup=markup)
+    bot.send_message(message.chat.id, "ok :", reply_markup=markup)
+
+markup = types.InlineKeyboardMarkup()
+markup.add(types.InlineKeyboardButton("أضف ادمن", callback_data="add_admin"))
+markup.add(types.InlineKeyboardButton("إزالة ادمن", callback_data="remove_admin"))
+markup.add(types.InlineKeyboardButton("عرض الادمنز", callback_data="show_admins"))
+bot.send_message(message.chat.id, "التحكم :", reply_markup=markup)@bot.callback_query_handler(func=lambda call: True) def handle_query(call): if call.message.chat.id not in admins: bot.answer_callback_query(call.id, "لا يمكنك استخدام هذا البوت.") return
 
 @bot.callback_query_handler(func=lambda call: True)
 def handle_query(call):
