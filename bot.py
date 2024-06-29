@@ -174,15 +174,11 @@ def display_info(message):
 
     if message.chat.id in admin_data:
         info = admin_data[message.chat.id]
-        emails = "\n".join([f"{email},{password}" for email, password in info.get('emails', [])])
-        subject = info.get('subject', 'لا يوجد')
-        body = info.get('body', 'لا يوجد')
-        sleep_time = info.get('sleep_time', sleep_time)
-        bot.send_message(message.chat.id, f"الإيميلات:\n{emails}\n\nالموضوع:\n{subject}\n\nكليشة الرسالة:\n{body}\n\nفترة السليب:\n{sleep_time} ثواني.")
-        if 'image_data' in info:
-            image_data = info['image_data']
-            image_data.seek(0)
-            bot.send_photo(message.chat.id, image_data)
+        email_list = info.get('email_list', 'لم يتم تحديد الإيميلات')
+        subject = info.get('subject', 'لم يتم تحديد الموضوع')
+        body = info.get('body', 'لم يتم تحديد كليشة الرسالة')
+        sleep_time = info.get('sleep_time', 'لم يتم تحديد فترة السليب')
+        bot.send_message(message.chat.id, f"الإيميلات: {email_list}\nالموضوع: {subject}\nكليشة الرسالة: {body}\nفترة السليب: {sleep_time} ثواني")
     else:
         bot.send_message(message.chat.id, "لا توجد معلومات لعرضها.")
 
