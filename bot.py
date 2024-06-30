@@ -323,9 +323,11 @@ def send_emails(admin_id):
             email_send_times[admin_id][email] = datetime.datetime.now()
             last_send_times[admin_id] = datetime.datetime.now()
 
-            time.sleep(sleep_time)
         except Exception as e:
             failed_emails[admin_id].append((email, str(e)))
+            continue  # تجاهل الأخطاء واستمر في الإرسال
+
+        time.sleep(sleep_time)
 
 def add_admin(message):
     try:
