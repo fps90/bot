@@ -247,7 +247,7 @@ def stop_sending_emails(message):
     bot.send_message(message.chat.id, "تم إيقاف الإرسال.")
 
 def show_sending_status(message):
-    global sent_count, sent_emails, email_sent_count, sending_active, last_send_time
+    global sent_count, sent_emails, email_sent_count, sending_active
     if message.chat.id not in admins:
         bot.send_message(message.chat.id, "- البوت خاص بالمشتركين - قم بمراسلة المطور ليتم اعطائك الوضع الـ vip @RR8R9 .")
         return
@@ -260,8 +260,8 @@ def show_sending_status(message):
     if email_sent_count:
         status_message += "توزيع الرسائل على الإيميلات:\n"
         for email, count in email_sent_count.items():
-            status_message += f"{email}: {count} رسالة(s)\n"
-    else:
+            status_message += f"{email}: {count} رسالة(بالثانية)\n"
+    else: 
         status_message += "توزيع الرسائل على الإيميلات: لا توجد بيانات\n"
 
     if sent_emails:
@@ -269,18 +269,15 @@ def show_sending_status(message):
     else:
         status_message += "لا توجد تفاصيل إرسال حالياً."
 
-    if last_send_time:
-        elapsed_time = datetime.datetime.now() - last_send_time
-        status_message += f"\nآخر عملية إرسال تمت قبل: {str(elapsed_time).split('.')[0]}"
+    # إضافة حالة الحسابات
+    if email_sent_count:
+        status_message += "\nحالة الحسابات:\n"
+        for email, count in email_sent_count.items():
+            status_message += f"{email}: {'شغال' if count > 0 else 'لا يتم الإرسال خطأ'}\n"
     else:
-        status_message += "\nلم يتم تسجيل أي عملية إرسال."
+        status_message += "\nحالة الحسابات: لا توجد بيانات"
 
-    # Checking email status
-    email_status_message = "حالة الحسابات:\n"
-    for email in admin_data.get(message.chat.id, {}).get('email_list', []):
-        email_status_message += f"{email}: {'شغال' if email not in failed_emails else 'لايتم الارسال خطأ'}\n"
-    bot.send_message(message.chat.id, status_message + "\n\n" + email_status_message)
-
+    bot.send_message(message.chat.id, status_message)
 def add_admin(message):
     try:
         new_admin_id = int(message.text)
