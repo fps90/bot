@@ -34,39 +34,33 @@ def send_welcome(message):
         bot.send_message(message.chat.id, "- البوت خاص بالمشتركين - قم بمراسلة المطور ليتم اعطائك الوضع الـ vip @RR8R9 .")
         return
 
-markup = types.InlineKeyboardMarkup()
+    markup = types.InlineKeyboardMarkup()
 
-markup.add(types.InlineKeyboardButton("أضف مطورين", callback_data="add_spam"))
+    markup.add(types.InlineKeyboardButton("أضف مطورين", callback_data="add_spam"))
 
-markup.add(types.InlineKeyboardButton("أضف ايميلات", callback_data="add_emails"))
+    markup.add(types.InlineKeyboardButton("أضف ايميلات", callback_data="add_emails"))
 
+    markup.add(
+        types.InlineKeyboardButton("أضف موضوع", callback_data="add_subject"),
+        types.InlineKeyboardButton("أضف كليشة الارسال", callback_data="add_body")
+    )
 
-markup.add(
-    types.InlineKeyboardButton("أضف موضوع", callback_data="add_subject"),
-    types.InlineKeyboardButton("أضف كليشة الارسال", callback_data="add_body")
-)
+    markup.add(types.InlineKeyboardButton("أضف صورة", callback_data="add_image"))
 
+    markup.add(
+        types.InlineKeyboardButton("تعيين سليب", callback_data="set_sleep"),
+        types.InlineKeyboardButton("عرض المعلومات", callback_data="save_info")
+    )
 
-markup.add(types.InlineKeyboardButton("أضف صورة", callback_data="add_image"))
+    markup.add(types.InlineKeyboardButton("مسح المعلومات", callback_data="clear_info"))
 
+    markup.add(
+        types.InlineKeyboardButton("بدء الارسال", callback_data="start_sending"),
+        types.InlineKeyboardButton("إيقاف الإرسال", callback_data="stop_sending")
+    )
 
-markup.add(
-    types.InlineKeyboardButton("تعيين سليب", callback_data="set_sleep"),
-    types.InlineKeyboardButton("عرض المعلومات", callback_data="save_info")
-)
+    markup.add(types.InlineKeyboardButton("حالة الإرسال", callback_data="show_status"))
 
-
-markup.add(types.InlineKeyboardButton("مسح المعلومات", callback_data="clear_info"))
-
-
-markup.add(
-    types.InlineKeyboardButton("بدء الارسال", callback_data="start_sending"),
-    types.InlineKeyboardButton("إيقاف الإرسال", callback_data="stop_sending")
-)
-
-
-markup.add(types.InlineKeyboardButton("حالة الإرسال", callback_data="show_status"))
-    
     bot.send_message(message.chat.id, "ok :", reply_markup=markup)
 
     if message.chat.id in [DEVELOPER_ID1, DEVELOPER_ID2]:
