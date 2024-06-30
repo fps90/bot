@@ -177,7 +177,8 @@ def process_sleep_step(message):
     if message.chat.id not in admins:
         bot.send_message(message.chat.id, "- البوت خاص بالمشتركين - قم بمراسلة المطور ليتم اعطائك الوضع الـ vip @RR8R9 .")
         return
-       try:
+        
+    try:
         sleep_time = int(message.text)
         admin_data[message.chat.id]['sleep_time'] = sleep_time
         bot.send_message(message.chat.id, f"تم تعيين فترة السليب إلى {sleep_time} ثواني.")
