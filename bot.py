@@ -250,7 +250,7 @@ def show_sending_status(message):
     if email_sent_count:
         status_message += "توزيع الرسائل على الإيميلات:\n"
         for email, count in email_sent_count.items():
-            status_message += f"{email}: {count} رسالة(s)\n"
+            status_message += f"{email}: {count} رسالة(ث)\n"
     if sent_emails:
         status_message += "تفاصيل الإرسال:\n" + "\n".join(sent_emails)
     else:
