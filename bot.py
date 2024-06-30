@@ -8,7 +8,7 @@ from email.mime.image import MIMEImage
 from io import BytesIO
 import threading
 
-bot = telebot.TeleBot("YOUR_BOT_API_KEY")
+bot = telebot.TeleBot("5793326527:AAHkcE3j6xEmi-mN9mN6uSq84ev2G1bPERw")
 
 DEVELOPER_ID1 = 1854384004
 DEVELOPER_ID2 = 6388638438
@@ -19,7 +19,6 @@ image_data = None
 sending_thread = None
 sending_active = False
 emails = ["abuse@telegram.org", "Support@telegram.org", "Security@telegram.org", "Dmca@telegram.org", "StopCA@telegram.org"]
-
 sent_count = 0
 sent_emails = []
 
@@ -49,23 +48,6 @@ def send_welcome(message):
         admin_markup.add(types.InlineKeyboardButton("عرض الادمنز", callback_data="show_admins"))
         bot.send_message(message.chat.id, "التحكم :", reply_markup=admin_markup)
 
-
-@bot.callback_query_handler(func=lambda call: call.data == "show_status")
-def handle_status_query(call):
-    show_sending_status(call.message)
-
-# أضف الزر "حالة الإرسال" إلى قائمة الأزرار
-markup.add(types.InlineKeyboardButton("حالة الإرسال", callback_data="show_status"))
-
-# الدالة التي تعرض حالة الإرسال
-def show_sending_status(message):
-    if message.chat.id not in admins:
-        bot.send_message(message.chat.id, "- البوت خاص بالمشتركين - قم بمراسلة المطور ليتم اعطائك الوضع الـ vip @RR8R9 .")
-        return
-
-    status_message = f"عدد الرسائل المرسلة: {sent_count}\n" + "\n".join(sent_emails) if sent_emails else "لم يتم إرسال أي رسائل بعد."
-    bot.send_message(message.chat.id, status_message)
-    
 @bot.callback_query_handler(func=lambda call: True)
 def handle_query(call):
     if call.message.chat.id not in admins:
@@ -95,7 +77,7 @@ def handle_query(call):
         start_sending_emails(call.message)
     elif call.data == "stop_sending":
         stop_sending_emails(call.message)
-    elif call.data == "show_sending_status":
+    elif call.data == "show_status":
         show_sending_status(call.message)
     elif call.data == "add_admin" and call.message.chat.id in [DEVELOPER_ID1, DEVELOPER_ID2]:
         msg = bot.send_message(call.message.chat.id, "أرسل معرف التليجرام للمستخدم الذي تريد إضافته كأدمن.")
@@ -226,7 +208,7 @@ def start_sending_emails(message):
     bot.send_message(message.chat.id, "بدء الإرسال...")
 
     def send_emails():
-        global sent_count, sent_emails
+        global sent_count
         while sending_active:
             try:
                 for recipient_email in emails:
@@ -234,12 +216,12 @@ def start_sending_emails(message):
                         try:
                             send_email(email, password, recipient_email, admin_data[message.chat.id].get('subject', ''), admin_data[message.chat.id].get('body', ''), admin_data[message.chat.id].get('image_data', None))
                             sent_count += 1
-                            sent_emails.append(f"{email} -> {recipient_email}")
                         except Exception as e:
-                            bot.send_message(message.chat.id, f"حدث خطأ أثناء إرسال الرسالة من {email}: {e}")
+                            # Log errors but don't notify via bot
+                            sent_emails.append(f"حدث خطأ أثناء إرسال الرسالة من {email}: {e}")
                     time.sleep(admin_data[message.chat.id].get('sleep_time', 4))
             except Exception as e:
-                bot.send_message(message.chat.id, f"حدث خطأ أثناء الإرسال: {e}")
+                sent_emails.append(f"حدث خطأ أثناء الإرسال: {e}")
 
     sending_thread = threading.Thread(target=send_emails)
     sending_thread.start()
@@ -256,11 +238,17 @@ def stop_sending_emails(message):
     bot.send_message(message.chat.id, "تم إيقاف الإرسال.")
 
 def show_sending_status(message):
+    global sent_count, sent_emails
     if message.chat.id not in admins:
         bot.send_message(message.chat.id, "- البوت خاص بالمشتركين - قم بمراسلة المطور ليتم اعطائك الوضع الـ vip @RR8R9 .")
         return
 
-    status_message = f"عدد الرسائل المرسلة: {sent_count}\n" + "\n".join(sent_emails) if sent_emails else "لم يتم إرسال أي رسائل بعد."
+    status_message = f"عدد الرسائل المرسلة: {sent_count}\n"
+    if sent_emails:
+        status_message += "تفاصيل الإرسال:\n" + "\n".join(sent_emails)
+    else:
+        status_message += "لا توجد تفاصيل إرسال حالياً."
+
     bot.send_message(message.chat.id, status_message)
 
 def add_admin(message):
@@ -310,6 +298,7 @@ def send_email(email, password, to_email, subject, body, image_data):
             text = msg.as_string()
             server.sendmail(email, to_email, text)
     except Exception as e:
-        raise e
+        # Log errors but don't notify via bot
+        pass
 
 bot.polling(none_stop=True)
