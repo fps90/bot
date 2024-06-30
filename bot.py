@@ -87,6 +87,20 @@ def handle_query(call):
     elif call.data == "show_admins" and call.message.chat.id in [DEVELOPER_ID1, DEVELOPER_ID2]:
         show_admin_ids(call.message)
 
+def process_send_count_step(message):
+    if message.chat.id not in admins:
+        bot.send_message(message.chat.id, "- البوت خاص بالمشتركين - قم بمراسلة المطور ليتم اعطائك الوضع الـ vip @RR8R9 .")
+        return
+
+    try:
+        send_count = int(message.text)
+        if message.chat.id not in admin_data:
+            admin_data[message.chat.id] = {}
+        admin_data[message.chat.id]['send_count'] = send_count
+        bot.send_message(message.chat.id, f"تم تعيين عدد {send_count}.")
+    except ValueError:
+        bot.send_message(message.chat.id, "يرجى إدخال عدد صحيح للرسائل.")
+
 def clear_info(message):
     if message.chat.id not in admins:
         bot.send_message(message.chat.id, "- البوت خاص بالمشتركين - قم بمراسلة المطور ليتم اعطائك الوضع الـ vip @RR8R9 .")
@@ -239,17 +253,6 @@ def start_sending_emails(message):
 
     sending_thread = threading.Thread(target=send_emails)
     sending_thread.start()
-
-def stop_sending_emails(message):
-    global sending_active
-    if message.chat.id not in admins:
-        bot.send_message(message.chat.id, "- البوت خاص بالمشتركين - قم بمراسلة المطور ليتم اعطائك الوضع الـ vip @RR8R9 .")
-        return
-
-    sending_active = False
-    if sending_thread:
-        sending_thread.join()
-    bot.send_message(message.chat.id, "تم إيقاف الإرسال.")
 
 def add_admin(message):
     try:
