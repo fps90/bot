@@ -334,6 +334,7 @@ def remove_admin(message):
             bot.send_message(message.chat.id, "لم يتم العثور على هذا المستخدم في قائمة الأدمنز.")
     except ValueError:
         bot.send_message(message.chat.id, "يرجى إدخال معرف صحيح.")
+
         
 def show_sending_status(message):
     global sent_count, email_sent_count, sending_active
@@ -395,7 +396,7 @@ def show_admin_ids(message):
     )
 
     bot.send_message(message.chat.id, response_message)
-
+    
 def send_email(email, password, to_email, subject, body, image_data):
     try:
         msg = MIMEMultipart()
