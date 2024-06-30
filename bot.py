@@ -178,7 +178,8 @@ def display_info(message):
         subject = info.get('subject', 'لم يتم تحديد الموضوع')
         body = info.get('body', 'لم يتم تحديد كليشة الرسالة')
         sleep_time = info.get('sleep_time', 'لم يتم تحديد فترة السليب')
-        bot.send_message(message.chat.id, f"الإيميلات: {email_list}\nالموضوع: {subject}\nكليشة الرسالة: {body}\nفترة السليب: {sleep_time} ثواني")
+        image_status = 'نعم' if 'image_data' in info else 'لا'
+        bot.send_message(message.chat.id, f"الإيميلات: {email_list}\nالموضوع: {subject}\nكليشة الرسالة: {body}\nفترة السليب: {sleep_time} ثواني\nالصورة مرفوعة: {image_status}")
     else:
         bot.send_message(message.chat.id, "لا توجد معلومات لعرضها.")
 
