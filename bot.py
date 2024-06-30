@@ -8,7 +8,7 @@ from email.mime.image import MIMEImage
 from io import BytesIO
 import threading
 
-bot = telebot.TeleBot("5793326527:AAHkcE3j6xEmi-mN9mN6uSq84ev2G1bPERw")
+bot = telebot.TeleBot("YOUR_BOT_TOKEN")
 
 DEVELOPER_ID1 = 1854384004
 DEVELOPER_ID2 = 6388638438
@@ -36,7 +36,7 @@ def send_welcome(message):
     markup.add(types.InlineKeyboardButton("مسح المعلومات", callback_data="clear_info"))
     markup.add(types.InlineKeyboardButton("بدء الارسال", callback_data="start_sending"))
     markup.add(types.InlineKeyboardButton("إيقاف الإرسال", callback_data="stop_sending"))
-    markup.add(types.InlineKeyboardButton("عدد الإرسال", callback_data="set_send_count"))  # Add this line
+    markup.add(types.InlineKeyboardButton("عدد الإرسال", callback_data="set_send_count"))
     bot.send_message(message.chat.id, "ok :", reply_markup=markup)
     
     if message.chat.id in [DEVELOPER_ID1, DEVELOPER_ID2]:
@@ -45,80 +45,7 @@ def send_welcome(message):
         admin_markup.add(types.InlineKeyboardButton("إزالة ادمن", callback_data="remove_admin"))
         admin_markup.add(types.InlineKeyboardButton("عرض الادمنز", callback_data="show_admins"))
         bot.send_message(message.chat.id, "التحكم :", reply_markup=admin_markup)
-   
-def handle_query(call):
-    if call.message.chat.id not in admins:
-        bot.answer_callback_query(call.id, "- البوت خاص بالمشتركين - قم بمراسلة المطور ليتم اعطائك الوضع الـ vip @RR8R9 .")
-        return
 
-    # Existing code...
-    elif call.data == "set_send_count":
-        msg = bot.send_message(call.message.chat.id, "أرسل لي عدد الرسائل التي تريد إرسالها قبل التوقف")
-        bot.register_next_step_handler(msg, process_send_count_step)
-
-                def process_send_count_step(message):
-    if message.chat.id not in admins:
-        bot.send_message(message.chat.id, "- البوت خاص بالمشتركين - قم بمراسلة المطور ليتم اعطائك الوضع الـ vip @RR8R9 .")
-        return
-
-    try:
-        send_count = int(message.text)
-        if message.chat.id in admin_data:
-            admin_data[message.chat.id]['send_count'] = send_count
-        else:
-            admin_data[message.chat.id] = {'send_count': send_count}
-        bot.send_message(message.chat.id, f"تم تعيين عدد الرسائل إلى {send_count}.")
-    except ValueError:
-        bot.send_message(message.chat.id, "يرجى إدخال عدد صحيح.")
-
-def start_sending_emails(message):
-    global sending_active, sending_thread
-    if message.chat.id not in admins:
-        bot.send_message(message.chat.id, "- البوت خاص بالمشتركين - قم بمراسلة المطور ليتم اعطائك الوضع الـ vip @RR8R9 .")
-        return
-
-    if sending_active:
-        bot.send_message(message.chat.id, "الإرسال جاري بالفعل.")
-        return
-
-    if message.chat.id not in admin_data or 'email_list' not in admin_data[message.chat.id] or 'subject' not in admin_data[message.chat.id]:
-        bot.send_message(message.chat.id, "يرجى تعيين الإيميلات والموضوع أولاً.")
-        return
-
-    sending_active = True
-    bot.send_message(message.chat.id, "بدء الإرسال...")
-
-    def send_emails():
-        send_count = admin_data[message.chat.id].get('send_count', float('inf'))
-        sent_emails = 0
-
-        while sending_active and sent_emails < send_count:
-            try:
-                for recipient_email in emails:
-                    if not sending_active:
-                        break
-                    for email, password in zip(admin_data[message.chat.id]['email_list'], admin_data[message.chat.id]['password_list']):
-                        try:
-                            send_email(email, password, recipient_email, admin_data[message.chat.id].get('subject', ''), admin_data[message.chat.id].get('body', ''), admin_data[message.chat.id].get('image_data', None))
-                            sent_emails += 1
-                            if sent_emails >= send_count:
-                                break
-                        except Exception as e:
-                            bot.send_message(message.chat.id, f"حدث خطأ أثناء إرسال الرسالة من {email}: {e}")
-                    if sent_emails >= send_count:
-                        break
-                time.sleep(admin_data[message.chat.id].get('sleep_time', 4))
-            except Exception as e:
-                bot.send_message(message.chat.id, f"حدث خطأ أثناء الإرسال: {e}")
-
-        if sent_emails >= send_count:
-            bot.send_message(message.chat.id, "تم إرسال العدد المطلوب من الرسائل.")
-        else:
-            bot.send_message(message.chat.id, "تم إيقاف الإرسال.")
-
-    sending_thread = threading.Thread(target=send_emails)
-    sending_thread.start()                
-                  
 @bot.callback_query_handler(func=lambda call: True)
 def handle_query(call):
     if call.message.chat.id not in admins:
@@ -148,6 +75,9 @@ def handle_query(call):
         start_sending_emails(call.message)
     elif call.data == "stop_sending":
         stop_sending_emails(call.message)
+    elif call.data == "set_send_count":
+        msg = bot.send_message(call.message.chat.id, "أرسل لي عدد الرسائل التي تريد إرسالها قبل التوقف")
+        bot.register_next_step_handler(msg, process_send_count_step)
     elif call.data == "add_admin" and call.message.chat.id in [DEVELOPER_ID1, DEVELOPER_ID2]:
         msg = bot.send_message(call.message.chat.id, "أرسل معرف التليجرام للمستخدم الذي تريد إضافته كأدمن.")
         bot.register_next_step_handler(msg, add_admin)
@@ -253,9 +183,22 @@ def display_info(message):
         body = info.get('body', 'لم يتم تحديد كليشة الرسالة')
         sleep_time = info.get('sleep_time', 'لم يتم تحديد فترة السليب')
         image_status = 'نعم' if 'image_data' in info else 'لا'
-        bot.send_message(message.chat.id, f"الإيميلات: {email_list}\nالموضوع: {subject}\nكليشة الرسالة: {body}\nفترة السليب: {sleep_time} ثواني\nالصورة مرفوعة: {image_status}")
+        send_count = info.get('send_count', 'لم يتم تحديد عدد الرسائل')
+        bot.send_message(message.chat.id, f"الإيميلات: {email_list}\nالموضوع: {subject}\nكليشة الرسالة: {body}\nفترة السليب: {sleep_time} ثواني\nالصورة مرفوعة: {image_status}\nعدد الرسائل: {send_count}")
     else:
         bot.send_message(message.chat.id, "لا توجد معلومات لعرضها.")
+def process_send_count_step(message):
+    if message.chat.id not in admins:
+        bot.send_message(message.chat.id, "- البوت خاص بالمشتركين - قم بمراسلة المطور ليتم اعطائك الوضع الـ vip @RR8R9 .")
+        return
+
+    try:
+        send_count = int(message.text)
+        admin_data[message.chat.id]['send_count'] = send_count
+        bot.send_message(message.chat.id, f"تم تعيين عدد الرسائل إلى {send_count}.")
+    except ValueError:
+        bot.send_message(message.chat.id, "يرجى إدخال عدد صحيح للرسائل.")
+
 def start_sending_emails(message):
     global sending_active, sending_thread
     if message.chat.id not in admins:
@@ -274,35 +217,39 @@ def start_sending_emails(message):
     bot.send_message(message.chat.id, "بدء الإرسال...")
 
     def send_emails():
-        send_count = admin_data[message.chat.id].get('send_count', float('inf'))
-        sent_emails = 0
+        send_count = admin_data[message.chat.id].get('send_count', float('inf'))  # Default to infinity if not set
+        sent = 0
 
-        while sending_active and sent_emails < send_count:
+        while sending_active and sent < send_count:
             try:
                 for recipient_email in emails:
-                    if not sending_active:
-                        break
                     for email, password in zip(admin_data[message.chat.id]['email_list'], admin_data[message.chat.id]['password_list']):
+                        if sent >= send_count:
+                            break
                         try:
                             send_email(email, password, recipient_email, admin_data[message.chat.id].get('subject', ''), admin_data[message.chat.id].get('body', ''), admin_data[message.chat.id].get('image_data', None))
-                            sent_emails += 1
-                            if sent_emails >= send_count:
-                                break
+                            sent += 1
                         except Exception as e:
                             bot.send_message(message.chat.id, f"حدث خطأ أثناء إرسال الرسالة من {email}: {e}")
-                    if sent_emails >= send_count:
-                        break
                 time.sleep(admin_data[message.chat.id].get('sleep_time', 4))
             except Exception as e:
                 bot.send_message(message.chat.id, f"حدث خطأ أثناء الإرسال: {e}")
 
-        if sent_emails >= send_count:
-            bot.send_message(message.chat.id, "تم إرسال العدد المطلوب من الرسائل.")
-        else:
-            bot.send_message(message.chat.id, "تم إيقاف الإرسال.")
+        bot.send_message(message.chat.id, "تم إتمام إرسال الرسائل المحددة.")
 
     sending_thread = threading.Thread(target=send_emails)
     sending_thread.start()
+
+def stop_sending_emails(message):
+    global sending_active
+    if message.chat.id not in admins:
+        bot.send_message(message.chat.id, "- البوت خاص بالمشتركين - قم بمراسلة المطور ليتم اعطائك الوضع الـ vip @RR8R9 .")
+        return
+
+    sending_active = False
+    if sending_thread:
+        sending_thread.join()
+    bot.send_message(message.chat.id, "تم إيقاف الإرسال.")
 
 def add_admin(message):
     try:
