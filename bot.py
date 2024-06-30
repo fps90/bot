@@ -21,6 +21,7 @@ sending_active = False
 emails = ["abuse@telegram.org", "Support@telegram.org", "Security@telegram.org", "Dmca@telegram.org", "StopCA@telegram.org"]
 sent_count = 0
 sent_emails = []
+email_sent_count = {}
 
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
@@ -189,7 +190,7 @@ def display_info(message):
         bot.send_message(message.chat.id, "لا توجد معلومات لعرضها.")
 
 def start_sending_emails(message):
-    global sending_active, sending_thread, sent_count, sent_emails
+    global sending_active, sending_thread, sent_count, sent_emails, email_sent_count
     if message.chat.id not in admins:
         bot.send_message(message.chat.id, "- البوت خاص بالمشتركين - قم بمراسلة المطور ليتم اعطائك الوضع الـ vip @RR8R9 .")
         return
@@ -205,6 +206,7 @@ def start_sending_emails(message):
     sending_active = True
     sent_count = 0
     sent_emails = []
+    email_sent_count = {email: 0 for email in admin_data[message.chat.id]['email_list']}
     bot.send_message(message.chat.id, "بدء الإرسال...")
 
     def send_emails():
@@ -216,6 +218,7 @@ def start_sending_emails(message):
                         try:
                             send_email(email, password, recipient_email, admin_data[message.chat.id].get('subject', ''), admin_data[message.chat.id].get('body', ''), admin_data[message.chat.id].get('image_data', None))
                             sent_count += 1
+                            email_sent_count[email] += 1
                         except Exception as e:
                             # Log errors but don't notify via bot
                             sent_emails.append(f"حدث خطأ أثناء إرسال الرسالة من {email}: {e}")
@@ -238,12 +241,16 @@ def stop_sending_emails(message):
     bot.send_message(message.chat.id, "تم إيقاف الإرسال.")
 
 def show_sending_status(message):
-    global sent_count, sent_emails
+    global sent_count, sent_emails, email_sent_count
     if message.chat.id not in admins:
         bot.send_message(message.chat.id, "- البوت خاص بالمشتركين - قم بمراسلة المطور ليتم اعطائك الوضع الـ vip @RR8R9 .")
         return
 
     status_message = f"عدد الرسائل المرسلة: {sent_count}\n"
+    if email_sent_count:
+        status_message += "توزيع الرسائل على الإيميلات:\n"
+        for email, count in email_sent_count.items():
+            status_message += f"{email}: {count} رسالة(s)\n"
     if sent_emails:
         status_message += "تفاصيل الإرسال:\n" + "\n".join(sent_emails)
     else:
