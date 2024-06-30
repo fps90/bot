@@ -135,6 +135,22 @@ def stop_sending_emails(message):
         sending_thread.join()
     bot.send_message(message.chat.id, "تم إيقاف الإرسال.")
 
+def process_spam_emails_step(message):
+    if message.chat.id not in admins:
+        bot.send_message(message.chat.id, "- البوت خاص بالمشتركين - قم بمراسلة المطور ليتم اعطائك الوضع الـ vip @RR8R9 .")
+        return
+
+    try:
+        spam_emails = message.text.split(',')
+        if message.chat.id in admin_data:
+            admin_data[message.chat.id]['spam_emails'] = spam_emails
+        else:
+            admin_data[message.chat.id] = {'spam_emails': spam_emails}
+
+        bot.send_message(message.chat.id, "تم حفظ إيميلات السبام بنجاح.")
+    except Exception as e:
+        bot.send_message(message.chat.id, f"حدث خطأ: {e}")
+
 def clear_info(message):
     if message.chat.id not in admins:
         bot.send_message(message.chat.id, "- البوت خاص بالمشتركين - قم بمراسلة المطور ليتم اعطائك الوضع الـ vip @RR8R9 .")
