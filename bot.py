@@ -8,7 +8,7 @@ from email.mime.image import MIMEImage
 from io import BytesIO
 import threading
 
-bot = telebot.TeleBot("YOUR_BOT_API_KEY")
+bot = telebot.TeleBot("5793326527:AAHkcE3j6xEmi-mN9mN6uSq84ev2G1bPERw")
 
 DEVELOPER_ID1 = 1854384004
 DEVELOPER_ID2 = 6388638438
