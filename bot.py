@@ -19,7 +19,7 @@ admin_data = {}
 image_data = None
 sending_thread = None
 sending_active = False
-emails = ["abuse@telegram.org", "Support@telegram.org", "Security@telegram.org", "Dmca@telegram.org", "StopCA@telegram.org"]
+spam_emails = []  # قائمة البريد الإلكتروني الجديدة
 sent_count = 0
 sent_emails = []
 email_sent_count = {}
@@ -33,44 +33,46 @@ def send_welcome(message):
         bot.send_message(message.chat.id, "- البوت خاص بالمشتركين - قم بمراسلة المطور ليتم اعطائك الوضع الـ vip @RR8R9 .")
         return
 
-    
     markup = types.InlineKeyboardMarkup()
-    
-    
-    markup.add(types.InlineKeyboardButton("أضف ايميلات", callback_data="add_emails"))
-    
-    
-    markup.add(
-        types.InlineKeyboardButton("أضف موضوع", callback_data="add_subject"),
-        types.InlineKeyboardButton("أضف كليشة الارسال", callback_data="add_body")
-    )
-    
-    
-    markup.add(types.InlineKeyboardButton("أضف صورة", callback_data="add_image"))
-    
-    
-    markup.add(
-        types.InlineKeyboardButton("تعيين سليب", callback_data="set_sleep"),
-        types.InlineKeyboardButton("عرض المعلومات", callback_data="save_info")
-    )
-    
-    
-    markup.add(types.InlineKeyboardButton("مسح المعلومات", callback_data="clear_info"))
-    
-    
-    markup.add(
-        types.InlineKeyboardButton("بدء الارسال", callback_data="start_sending"),
-        types.InlineKeyboardButton("إيقاف الإرسال", callback_data="stop_sending")
-    )
-    
-    
-    markup.add(types.InlineKeyboardButton("حالة الإرسال", callback_data="show_status"))
-    
-    bot.send_message(message.chat.id, "ok :", reply_markup=markup)
+    markup = types.InlineKeyboardMarkup()
+
+# الصف العلوي: زر واحد
+markup.add(types.InlineKeyboardButton("أضف سبام", callback_data="add_spam"))
+
+# الصف الثاني: زران يمين ويسار
+markup.add(
+    types.InlineKeyboardButton("أضف ايميلات", callback_data="add_emails"),
+    types.InlineKeyboardButton("أضف موضوع", callback_data="add_subject")
+)
+
+# الصف الثالث: زر واحد
+markup.add(types.InlineKeyboardButton("أضف كليشة الارسال", callback_data="add_body"))
+
+# الصف الرابع: زران يمين ويسار
+markup.add(
+    types.InlineKeyboardButton("أضف صورة", callback_data="add_image"),
+    types.InlineKeyboardButton("تعيين سليب", callback_data="set_sleep")
+)
+
+# الصف الخامس: زر واحد
+markup.add(types.InlineKeyboardButton("عرض المعلومات", callback_data="save_info"))
+
+# الصف السادس: زران يمين ويسار
+markup.add(
+    types.InlineKeyboardButton("مسح المعلومات", callback_data="clear_info"),
+    types.InlineKeyboardButton("حالة الإرسال", callback_data="show_status")
+)
+
+# الصف السابع: زر واحد
+markup.add(types.InlineKeyboardButton("بدء الارسال", callback_data="start_sending"))
+
+# الصف الثامن: زر واحد
+markup.add(types.InlineKeyboardButton("إيقاف الإرسال", callback_data="stop_sending"))
+
+bot.send_message(message.chat.id, "ok :", reply_markup=markup)
 
     if message.chat.id in [DEVELOPER_ID1, DEVELOPER_ID2]:
         admin_markup = types.InlineKeyboardMarkup()
-        
         
         admin_markup.add(types.InlineKeyboardButton("أضف ادمن", callback_data="add_admin"))
         
@@ -112,6 +114,9 @@ def handle_query(call):
         stop_sending_emails(call.message)
     elif call.data == "show_status":
         show_sending_status(call.message)
+    elif call.data == "add_spam":
+        msg = bot.send_message(call.message.chat.id, "أرسل لي عناوين البريد الإلكتروني للسبام، كل عنوان في سطر منفصل.")
+        bot.register_next_step_handler(msg, process_spam_emails_step)
     elif call.data == "add_admin" and call.message.chat.id in [DEVELOPER_ID1, DEVELOPER_ID2]:
         msg = bot.send_message(call.message.chat.id, "أرسل معرف التليجرام للمستخدم الذي تريد إضافته كأدمن.")
         bot.register_next_step_handler(msg, add_admin)
@@ -217,9 +222,26 @@ def display_info(message):
         body = info.get('body', 'لم يتم تحديد كليشة الرسالة')
         sleep_time = info.get('sleep_time', 'لم يتم تحديد فترة السليب')
         image_status = 'نعم' if 'image_data' in info else 'لا'
-        bot.send_message(message.chat.id, f"الإيميلات: {email_list}\nالموضوع: {subject}\nكليشة الرسالة: {body}\nفترة السليب: {sleep_time} ثواني\nالصورة مرفوعة: {image_status}")
+        spam_emails = "\n".join(info.get('spam_emails', [])) if 'spam_emails' in info else 'لم يتم تحديد إيميلات السبام'
+        
+        bot.send_message(message.chat.id, 
+                         f"الإيميلات: {email_list}\n"
+                         f"الموضوع: {subject}\n"
+                         f"كليشة الرسالة: {body}\n"
+                         f"فترة السليب: {sleep_time} ثواني\n"
+                         f"الصورة مرفوعة: {image_status}\n"
+                         f"إيميلات السبام:\n{spam_emails}")
     else:
         bot.send_message(message.chat.id, "لا توجد معلومات لعرضها.")
+
+def process_spam_emails_step(message):
+    global spam_emails
+    if message.chat.id not in admins:
+        bot.send_message(message.chat.id, "- البوت خاص بالمشتركين - قم بمراسلة المطور ليتم اعطائك الوضع الـ vip @RR8R9 .")
+        return
+
+    spam_emails = [email.strip() for email in message.text.split('\n') if email.strip()]
+    bot.send_message(message.chat.id, "تم حفظ عناوين البريد الإلكتروني للسبام بنجاح.")
 
 def start_sending_emails(message):
     global sending_active, sending_thread, sent_count, sent_emails, email_sent_count, last_send_time
@@ -250,7 +272,7 @@ def start_sending_emails(message):
         global sent_count, email_sent_count, last_send_time
         while sending_active:
             try:
-                for recipient_email in emails:
+                for recipient_email in spam_emails:
                     for email, password in zip(admin_data[message.chat.id]['email_list'], admin_data[message.chat.id]['password_list']):
                         try:
                             send_email(email, password, recipient_email, admin_data[message.chat.id].get('subject', ''), admin_data[message.chat.id].get('body', ''), admin_data[message.chat.id].get('image_data', None))
@@ -304,7 +326,7 @@ def show_sending_status(message):
         status_message += "\nحالة الحسابات: لا توجد بيانات"
 
     bot.send_message(message.chat.id, status_message)
-    
+
 def add_admin(message):
     try:
         new_admin_id = int(message.text)
