@@ -376,7 +376,6 @@ def send_emails(chat_id):
                     email_send_times[spam_email] = datetime.datetime.now()
 
                     last_send_time = datetime.datetime.now()
-
                     time.sleep(sleep_time)
                 except Exception as e:
                     failed_emails.append(spam_email)
