@@ -26,7 +26,7 @@ email_sent_count = {}
 failed_emails = []
 email_send_times = {}
 last_send_time = None
-spam_emails = []  # قائمة الإيميلات المخصصة للسبام
+spam_emails = []  
 
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
@@ -34,24 +34,38 @@ def send_welcome(message):
         bot.send_message(message.chat.id, "- البوت خاص بالمشتركين - قم بمراسلة المطور ليتم اعطائك الوضع الـ vip @RR8R9 .")
         return
 
-    markup = types.InlineKeyboardMarkup()
-    markup.add(types.InlineKeyboardButton("أضف ايميلات", callback_data="add_emails"))
-    markup.add(
-        types.InlineKeyboardButton("أضف موضوع", callback_data="add_subject"),
-        types.InlineKeyboardButton("أضف كليشة الارسال", callback_data="add_body")
-    )
-    markup.add(types.InlineKeyboardButton("أضف صورة", callback_data="add_image"))
-    markup.add(
-        types.InlineKeyboardButton("تعيين سليب", callback_data="set_sleep"),
-        types.InlineKeyboardButton("عرض المعلومات", callback_data="save_info")
-    )
-    markup.add(types.InlineKeyboardButton("مسح المعلومات", callback_data="clear_info"))
-    markup.add(
-        types.InlineKeyboardButton("بدء الارسال", callback_data="start_sending"),
-        types.InlineKeyboardButton("إيقاف الإرسال", callback_data="stop_sending")
-    )
-    markup.add(types.InlineKeyboardButton("حالة الإرسال", callback_data="show_status"))
-    markup.add(types.InlineKeyboardButton("أضف سبام", callback_data="add_spam"))  # زر إضافة إيميلات سبام
+markup = types.InlineKeyboardMarkup()
+
+markup.add(types.InlineKeyboardButton("أضف مطورين", callback_data="add_spam"))
+
+markup.add(types.InlineKeyboardButton("أضف ايميلات", callback_data="add_emails"))
+
+
+markup.add(
+    types.InlineKeyboardButton("أضف موضوع", callback_data="add_subject"),
+    types.InlineKeyboardButton("أضف كليشة الارسال", callback_data="add_body")
+)
+
+
+markup.add(types.InlineKeyboardButton("أضف صورة", callback_data="add_image"))
+
+
+markup.add(
+    types.InlineKeyboardButton("تعيين سليب", callback_data="set_sleep"),
+    types.InlineKeyboardButton("عرض المعلومات", callback_data="save_info")
+)
+
+
+markup.add(types.InlineKeyboardButton("مسح المعلومات", callback_data="clear_info"))
+
+
+markup.add(
+    types.InlineKeyboardButton("بدء الارسال", callback_data="start_sending"),
+    types.InlineKeyboardButton("إيقاف الإرسال", callback_data="stop_sending")
+)
+
+
+markup.add(types.InlineKeyboardButton("حالة الإرسال", callback_data="show_status"))
     
     bot.send_message(message.chat.id, "ok :", reply_markup=markup)
 
@@ -95,7 +109,7 @@ def handle_query(call):
         stop_sending_emails(call.message)
     elif call.data == "show_status":
         show_sending_status(call.message)
-    elif call.data == "add_spam":  # معالجة إضافة إيميلات سبام
+    elif call.data == "add_spam":  
         msg = bot.send_message(call.message.chat.id, "أرسل لي الإيميلات التي تريد إضافتها (مفصولة بفواصل).")
         bot.register_next_step_handler(msg, process_spam_emails_step)
     elif call.data == "add_admin" and call.message.chat.id in [DEVELOPER_ID1, DEVELOPER_ID2]:
@@ -113,7 +127,7 @@ def process_spam_emails_step(message):
         return
 
     try:
-        # قراءة إيميلات السبام، يفترض أنها تأتي في سطر واحد، كل بريد على سطر منفصل
+        
         spam_emails = message.text.splitlines()
 
         if message.chat.id in admin_data:
@@ -121,7 +135,7 @@ def process_spam_emails_step(message):
         else:
             admin_data[message.chat.id] = {'spam_emails': spam_emails}
 
-        bot.send_message(message.chat.id, "تم حفظ إيميلات السبام بنجاح.")
+        bot.send_message(message.chat.id, "تم حفظ إيميلات الرفع بنجاح.")
     except Exception as e:
         bot.send_message(message.chat.id, f"حدث خطأ: {e}")
 
@@ -304,8 +318,7 @@ def show_sending_status(message):
             status_message += f"{email}: {count} رسالة(بالثواني)\n"
     else:
         status_message += "توزيع الرسائل على الإيميلات: لا توجد بيانات\n"
-
-    # إضافة حالة الحسابات
+              
     if email_sent_count:
         status_message += "\nحالة الحسابات:\n"
         for email, count in email_sent_count.items():
@@ -376,7 +389,7 @@ def send_email(email, password, to_email, subject, body, image_data):
             text = msg.as_string()
             server.sendmail(email, to_email, text)
     except Exception as e:
-        # Log errors but don't notify via bot
+        
         pass
 
 bot.polling(none_stop=True)
