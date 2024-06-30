@@ -8,7 +8,7 @@ from email.mime.image import MIMEImage
 from io import BytesIO
 import threading
 
-bot = telebot.TeleBot("5793326527:AAHkcE3j6xEmi-mN9mN6uSq84ev2G1bPERw")
+bot = telebot.TeleBot("YOUR_BOT_API_KEY")
 
 DEVELOPER_ID1 = 1854384004
 DEVELOPER_ID2 = 6388638438
@@ -167,7 +167,7 @@ def process_sleep_step(message):
         return
 
     try:
-        sleep_time = int(message.text)
+     sleep_time = int(message.text)
         if message.chat.id in admin_data:
             admin_data[message.chat.id]['sleep_time'] = sleep_time
         else:
@@ -251,7 +251,7 @@ def start_sending_emails(message):
         return
 
     sending_active = True
-    sending_thread = threading.Thread(target=send_emails, args=(message,))
+    sending_thread = threading.Thread(target=send_emails, args=(message.chat.id,))
     sending_thread.start()
     bot.send_message(message.chat.id, "تم بدء الإرسال.")
 
@@ -270,16 +270,17 @@ def show_status(message):
         status_message += f"{email}: {status}\n"
     bot.send_message(message.chat.id, status_message)
 
-def send_emails(message):
+def send_emails(chat_id):
     global send_success_count, sending_active
-    data = admin_data[message.chat.id]
+    data = admin_data[chat_id]
     email_list = data['email_list']
     password_list = data['password_list']
     subject = data['subject']
     body = data['body']
     sleep_time = data.get('sleep_time', 1)  # الافتراضي ثانية واحدة
-    send_count = data.get('send_count', len(emails))  # الافتراضي يرسل لجميع الإيميلات
+    send_count = data.get('send_count', 0)  # الافتراضي إرسال غير محدود
 
+    success_count = 0
     while sending_active:
         for i in range(len(email_list)):
             if not sending_active:
@@ -290,16 +291,18 @@ def send_emails(message):
 
             try:
                 send_email(email, password, emails, subject, body)
-                send_success_count += 1
+                success_count += 1
                 email_status[email] = "تم الإرسال بنجاح"
             except Exception as e:
                 email_status[email] = f"خطأ: {str(e)}"
-            
+
             time.sleep(sleep_time)
 
-            if send_success_count >= send_count:
+            if send_count > 0 and success_count >= send_count:
                 sending_active = False
                 break
+
+    bot.send_message(chat_id, f"تم الانتهاء من عملية الإرسال. عدد الرسائل المرسلة بنجاح: {success_count}")
 
 def send_email(sender_email, sender_password, receiver_emails, subject, body):
     msg = MIMEMultipart()
