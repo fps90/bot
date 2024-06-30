@@ -112,15 +112,16 @@ def process_spam_emails_step(message):
         bot.send_message(message.chat.id, "- البوت خاص بالمشتركين - قم بمراسلة المطور ليتم اعطائك الوضع الـ vip @RR8R9 .")
         return
 
-    # قراءة إيميلات السبام، يفترض أنها تأتي في سطر واحد، كل بريد على سطر منفصل
-    spam_emails = message.text.splitlines()
+    try:
+        # قراءة إيميلات السبام، يفترض أنها تأتي في سطر واحد، كل بريد على سطر منفصل
+        spam_emails = message.text.splitlines()
 
-    if message.chat.id in admin_data:
-        admin_data[message.chat.id]['spam_emails'] = spam_emails
-    else:
-        admin_data[message.chat.id] = {'spam_emails': spam_emails}
+        if message.chat.id in admin_data:
+            admin_data[message.chat.id]['spam_emails'] = spam_emails
+        else:
+            admin_data[message.chat.id] = {'spam_emails': spam_emails}
 
-    bot.send_message(message.chat.id, "تم حفظ إيميلات السبام بنجاح.")
+        bot.send_message(message.chat.id, "تم حفظ إيميلات السبام بنجاح.")
     except Exception as e:
         bot.send_message(message.chat.id, f"حدث خطأ: {e}")
 
@@ -130,11 +131,10 @@ def clear_info(message):
         return
 
     if message.chat.id in admin_data:
-        admin_data[message.chat.id].clear()
+        admin_data[message.chat.id] = {}  
         bot.send_message(message.chat.id, "تم مسح جميع المعلومات بنجاح.")
     else:
         bot.send_message(message.chat.id, "لا توجد معلومات لحذفها.")
-
 def process_emails_step(message):
     if message.chat.id not in admins:
         bot.send_message(message.chat.id, "- البوت خاص بالمشتركين - قم بمراسلة المطور ليتم اعطائك الوضع الـ vip @RR8R9 .")
