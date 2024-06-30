@@ -142,7 +142,13 @@ def process_spam_emails_step(message):
         return
 
     spam_emails_list = message.text.split('\n')
-    admin_data[message.chat.id] = {'spam_emails': spam_emails_list}
+    if message.chat.id in admin_data:
+        if 'spam_emails' in admin_data[message.chat.id]:
+            admin_data[message.chat.id]['spam_emails'].extend(spam_emails_list)
+        else:
+            admin_data[message.chat.id]['spam_emails'] = spam_emails_list
+    else:
+        admin_data[message.chat.id] = {'spam_emails': spam_emails_list}
     bot.send_message(message.chat.id, "تم حفظ إيميلات السبام بنجاح.")
 
 def process_emails_step(message):
@@ -159,11 +165,14 @@ def process_emails_step(message):
             email_list.append(email)
             password_list.append(password)
 
-        admin_data[message.chat.id] = {'email_list': email_list, 'password_list': password_list}
+        if message.chat.id in admin_data:
+            admin_data[message.chat.id]['email_list'] = email_list
+            admin_data[message.chat.id]['password_list'] = password_list
+        else:
+            admin_data[message.chat.id] = {'email_list': email_list, 'password_list': password_list}
         bot.send_message(message.chat.id, "تم حفظ الإيميلات وكلمات المرور بنجاح.")
     except ValueError:
         bot.send_message(message.chat.id, "صيغة غير صحيحة. يرجى الإرسال بالصورة الصحيحة: email1,password1;email2,password2;...")
-
 def process_subject_step(message):
     if message.chat.id not in admins:
         bot.send_message(message.chat.id, "- البوت خاص بالمشتركين - قم بمراسلة المطور ليتم اعطائك الوضع الـ vip @RR8R9 .")
