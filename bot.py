@@ -167,7 +167,7 @@ def process_sleep_step(message):
         return
 
     try:
-     sleep_time = int(message.text)
+        sleep_time = int(message.text)
         if message.chat.id in admin_data:
             admin_data[message.chat.id]['sleep_time'] = sleep_time
         else:
@@ -278,9 +278,10 @@ def send_emails(chat_id):
     subject = data['subject']
     body = data['body']
     sleep_time = data.get('sleep_time', 1)  # الافتراضي ثانية واحدة
-    send_count = data.get('send_count', 0)  # الافتراضي إرسال غير محدود
+    send_count = data.get('send_count', 0)  # 0 يعني إرسال مستمر
 
     success_count = 0
+
     while sending_active:
         for i in range(len(email_list)):
             if not sending_active:
@@ -295,14 +296,14 @@ def send_emails(chat_id):
                 email_status[email] = "تم الإرسال بنجاح"
             except Exception as e:
                 email_status[email] = f"خطأ: {str(e)}"
-
+            
             time.sleep(sleep_time)
 
             if send_count > 0 and success_count >= send_count:
                 sending_active = False
                 break
 
-    bot.send_message(chat_id, f"تم الانتهاء من عملية الإرسال. عدد الرسائل المرسلة بنجاح: {success_count}")
+    bot.send_message(chat_id, f"تم الانتهاء من الإرسال. عدد الرسائل المرسلة: {success_count}")
 
 def send_email(sender_email, sender_password, receiver_emails, subject, body):
     msg = MIMEMultipart()
