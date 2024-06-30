@@ -224,6 +224,7 @@ def display_info(message):
         bot.send_message(message.chat.id, "- البوت خاص بالمشتركين - قم بمراسلة المطور ليتم اعطائك الوضع الـ vip @RR8R9 .")
         return
 
+    # تأكد من عرض المعلومات الخاصة بالمطور أو الأدمن الحالي فقط
     if message.chat.id in admin_data:
         info = admin_data[message.chat.id]
         email_list = info.get('email_list', 'لم يتم تحديد الإيميلات')
@@ -236,6 +237,18 @@ def display_info(message):
     else:
         bot.send_message(message.chat.id, "لا توجد معلومات لعرضها.")
         
+def clear_info(message):
+    if message.chat.id not in admins:
+        bot.send_message(message.chat.id, "- البوت خاص بالمشتركين - قم بمراسلة المطور ليتم اعطائك الوضع الـ vip @RR8R9 .")
+        return
+
+    # تأكد من مسح المعلومات الخاصة بالمطور أو الأدمن الحالي فقط
+    if message.chat.id in admin_data:
+        admin_data[message.chat.id] = {}  
+        bot.send_message(message.chat.id, "تم مسح جميع المعلومات بنجاح.")
+    else:
+        bot.send_message(message.chat.id, "لا توجد معلومات لحذفها.")
+
 def start_sending_emails(message):
     global sending_active, sending_thread, sent_count, sent_emails, email_sent_count, last_send_time, spam_emails
     if message.chat.id not in admins:
@@ -246,6 +259,7 @@ def start_sending_emails(message):
         bot.send_message(message.chat.id, "الإرسال جاري بالفعل.")
         return
 
+    # تأكد من وجود البيانات الخاصة بالمطور أو الأدمن الحالي فقط
     if message.chat.id not in admin_data or 'email_list' not in admin_data[message.chat.id] or 'subject' not in admin_data[message.chat.id]:
         bot.send_message(message.chat.id, "يرجى تعيين الإيميلات والموضوع أولاً.")
         return
@@ -268,7 +282,7 @@ def start_sending_emails(message):
         global sent_count, email_sent_count, last_send_time
         while sending_active:
             try:
-                for recipient_email in admin_data[message.chat.id]['spam_emails']:  # تأكد من استخدام قائمة إيميلات السبام
+                for recipient_email in admin_data[message.chat.id]['spam_emails']:
                     for email, password in zip(admin_data[message.chat.id]['email_list'], admin_data[message.chat.id]['password_list']):
                         try:
                             send_email(email, password, recipient_email, admin_data[message.chat.id].get('subject', ''), admin_data[message.chat.id].get('body', ''), admin_data[message.chat.id].get('image_data', None))
@@ -284,25 +298,56 @@ def start_sending_emails(message):
     sending_thread = threading.Thread(target=send_emails)
     sending_thread.start()
 
-def stop_sending_emails(message):
-    global sending_active
-    if message.chat.id not in admins:
-        bot.send_message(message.chat.id, "- البوت خاص بالمشتركين - قم بمراسلة المطور ليتم اعطائك الوضع الـ vip @RR8R9 .")
+def add_admin(message):
+    if message.chat.id not in [DEVELOPER_ID1, DEVELOPER_ID2]:
+        bot.send_message(message.chat.id, "- لا يمكنك إضافة أدمن آخر.")
         return
 
-    sending_active = False
-    if sending_thread:
-        sending_thread.join()
-    bot.send_message(message.chat.id, "تم إيقاف الإرسال.")
-    
+    try:
+        new_admin_id = int(message.text)
+        if new_admin_id not in admins:
+            admins.append(new_admin_id)
+            bot.send_message(message.chat.id, f"تمت إضافة المستخدم {new_admin_id} كأدمن.")
+            # Notify the first developer about the new admin
+            bot.send_message(DEVELOPER_ID1, f"تمت إضافة أدمن جديد: {new_admin_id}.")
+        else:
+            bot.send_message(message.chat.id, "هذا المستخدم موجود بالفعل في قائمة الأدمنز.")
+    except ValueError:
+        bot.send_message(message.chat.id, "يرجى إدخال معرف صحيح.")
+
+def remove_admin(message):
+    if message.chat.id not in [DEVELOPER_ID1, DEVELOPER_ID2]:
+        bot.send_message(message.chat.id, "- لا يمكنك إزالة أدمن آخر.")
+        return
+
+    try:
+        admin_id = int(message.text)
+        if admin_id in [DEVELOPER_ID1, DEVELOPER_ID2]:
+            bot.send_message(message.chat.id, "- لا يمكنك إزالة نفسك عزيزي المطور.")
+            return
+        if admin_id in admins:
+            admins.remove(admin_id)
+            bot.send_message(message.chat.id, f"تمت إزالة المستخدم {admin_id} من قائمة الأدمنز.")
+            # Notify the first developer about the removed admin
+            bot.send_message(DEVELOPER_ID1, f"تمت إزالة أدمن: {admin_id}.")
+        else:
+            bot.send_message(message.chat.id, "لم يتم العثور على هذا المستخدم في قائمة الأدمنز.")
+    except ValueError:
+        bot.send_message(message.chat.id, "يرجى إدخال معرف صحيح.")
+        
 def show_sending_status(message):
     global sent_count, email_sent_count, sending_active
+
     if message.chat.id not in admins:
         bot.send_message(message.chat.id, "- البوت خاص بالمشتركين - قم بمراسلة المطور ليتم اعطائك الوضع الـ vip @RR8R9 .")
         return
 
     if not sending_active:
         bot.send_message(message.chat.id, "لا توجد عمليات إرسال نشطة في الوقت الحالي.")
+        return
+
+    if message.chat.id not in admin_data or 'email_list' not in admin_data[message.chat.id]:
+        bot.send_message(message.chat.id, "لا توجد بيانات للإرسال حاليًا.")
         return
 
     status_message = f"عدد الرسائل المرسلة: {sent_count}\n"
@@ -320,18 +365,7 @@ def show_sending_status(message):
     else:
         status_message += "\nحالة الحسابات: لا توجد بيانات"
 
-    bot.send_message(message.chat.id, status_message)
-
-def add_admin(message):
-    try:
-        new_admin_id = int(message.text)
-        if new_admin_id not in admins:
-            admins.append(new_admin_id)
-            bot.send_message(message.chat.id, f"تمت إضافة المستخدم {new_admin_id} كأدمن.")
-        else:
-            bot.send_message(message.chat.id, "هذا المستخدم موجود بالفعل في قائمة الأدمنز.")
-    except ValueError:
-        bot.send_message(message.chat.id, "يرجى إدخال معرف صحيح.")
+    bot.send_message(message.chat.id, status_message)        
 
 def remove_admin(message):
     try:
