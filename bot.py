@@ -9,7 +9,7 @@ import threading
 import datetime
 import time
 
-bot = telebot.TeleBot("5793326527:AAHkcE3j6xEmi-mN9mN6uSq84ev2G1bPERw")
+bot = telebot.TeleBot("YOUR_BOT_API_KEY")
 
 DEVELOPER_ID1 = 1854384004
 DEVELOPER_ID2 = 6388638438
@@ -250,6 +250,18 @@ def show_sending_status(message):
         bot.send_message(message.chat.id, status_msg)
     else:
         bot.send_message(message.chat.id, "الإرسال غير مفعل حالياً.")
+def process_body_step(message):
+    if message.chat.id not in admins:
+        bot.send_message(message.chat.id, "- البوت خاص بالمشتركين - قم بمراسلة المطور ليتم إعطائك الوضع الـ vip @RR8R9 .")
+        return
+
+    body = message.text
+    if message.chat.id in admin_data:
+        admin_data[message.chat.id]['body'] = body
+    else:
+        admin_data[message.chat.id] = {'body': body}
+    bot.send_message(message.chat.id, "تم حفظ كليشة الرسالة بنجاح.")
+
 
 def send_emails(chat_id):
     while sending_active.get(chat_id, False):
