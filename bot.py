@@ -142,6 +142,15 @@ def clear_info(message):
     else:
         bot.send_message(message.chat.id, "لا توجد معلومات لحذفها.")
 
+def display_info(message):
+    if message.chat.id not in admins:
+        bot.send_message(message.chat.id, "- البوت خاص بالمشتركين - قم بمراسلة المطور ليتم اعطائك الوضع الـ vip @RR8R9 .")
+        return
+
+    info = admin_data.get(message.chat.id, "لا توجد معلومات لعرضها.")
+    bot.send_message(message.chat.id, str(info))
+
+
 def process_emails_step(message):
     if message.chat.id not in admins:
         bot.send_message(message.chat.id, "- البوت خاص بالمشتركين - قم بمراسلة المطور ليتم اعطائك الوضع الـ vip @RR8R9 .")
