@@ -41,8 +41,8 @@ def send_welcome(message):
     
     if message.chat.id in [DEVELOPER_ID1, DEVELOPER_ID2]:
         admin_markup = types.InlineKeyboardMarkup()
-        admin_markup.add(types.InlineKeyboardButton("أضف ادمن", callback_data="add_admin"))
-        admin_markup.add(types.InlineKeyboardButton("إزالة ادمن", callback_data="remove_admin"))
+        admin_markup.add(types.InlineKeyboardButton("أضف ادمنز", callback_data="add_admin"))
+        admin_markup.add(types.InlineKeyboardButton("إزالة ادمنز", callback_data="remove_admin"))
         admin_markup.add(types.InlineKeyboardButton("عرض الادمنز", callback_data="show_admins"))
         bot.send_message(message.chat.id, "التحكم :", reply_markup=admin_markup)
 
@@ -97,7 +97,7 @@ def process_send_count_step(message):
         if message.chat.id not in admin_data:
             admin_data[message.chat.id] = {}
         admin_data[message.chat.id]['send_count'] = send_count
-        bot.send_message(message.chat.id, f"تم تعيين عدد {send_count}.")
+        bot.send_message(message.chat.id, f"تم تعيين عدد الرسائل إلى {send_count}.")
     except ValueError:
         bot.send_message(message.chat.id, "يرجى إدخال عدد صحيح للرسائل.")
 
@@ -201,17 +201,6 @@ def display_info(message):
         bot.send_message(message.chat.id, f"الإيميلات: {email_list}\nالموضوع: {subject}\nكليشة الرسالة: {body}\nفترة السليب: {sleep_time} ثواني\nالصورة مرفوعة: {image_status}\nعدد الرسائل: {send_count}")
     else:
         bot.send_message(message.chat.id, "لا توجد معلومات لعرضها.")
-def process_send_count_step(message):
-    if message.chat.id not in admins:
-        bot.send_message(message.chat.id, "- البوت خاص بالمشتركين - قم بمراسلة المطور ليتم اعطائك الوضع الـ vip @RR8R9 .")
-        return
-
-    try:
-        send_count = int(message.text)
-        admin_data[message.chat.id]['send_count'] = send_count
-        bot.send_message(message.chat.id, f"تم تعيين عدد الرسائل إلى {send_count}.")
-    except ValueError:
-        bot.send_message(message.chat.id, "يرجى إدخال عدد صحيح للرسائل.")
 
 def start_sending_emails(message):
     global sending_active, sending_thread
@@ -253,6 +242,21 @@ def start_sending_emails(message):
 
     sending_thread = threading.Thread(target=send_emails)
     sending_thread.start()
+
+def stop_sending_emails(message):
+    global sending_active
+    if message.chat.id not in admins:
+        bot.send_message(message.chat.id, "- البوت خاص بالمشتركين - قم بمراسلة المطور ليتم اعطائك الوضع الـ vip @RR8R9 .")
+        return
+
+    if not sending_active:
+        bot.send_message(message.chat.id, "الإرسال ليس نشطاً حالياً.")
+        return
+
+    sending_active = False
+    if sending_thread:
+        sending_thread.join()
+    bot.send_message(message.chat.id, "تم إيقاف الإرسال.")
 
 def add_admin(message):
     try:
