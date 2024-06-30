@@ -123,15 +123,11 @@ def stop_sending_emails(message):
         return
 
     if not sending_active:
-        bot.send_message(message.chat.id, "لا توجد عمليات إرسال نشطة في الوقت الحالي.")
-        return
-
-    if sending_initiator != message.chat.id:
-        bot.send_message(message.chat.id, "لا يمكنك إيقاف الإرسال لأنك لم تبدأ العملية.")
+        bot.send_message(message.chat.id, "لا توجد عملية إرسال نشطة.")
         return
 
     sending_active = False
-    if sending_thread is not None:
+    if sending_thread:
         sending_thread.join()
     bot.send_message(message.chat.id, "تم إيقاف الإرسال.")
 
@@ -268,7 +264,7 @@ def clear_info(message):
         bot.send_message(message.chat.id, "لا توجد معلومات لحذفها.")
 
 def start_sending_emails(message):
-    global sending_active, sending_thread, sent_count, sent_emails, email_sent_count, last_send_time, spam_emails, sending_initiator
+    global sending_active, sending_thread, sent_count, sent_emails, email_sent_count, last_send_time, spam_emails
     if message.chat.id not in admins:
         bot.send_message(message.chat.id, "- البوت خاص بالمشتركين - قم بمراسلة المطور ليتم اعطائك الوضع الـ vip @RR8R9 .")
         return
@@ -277,6 +273,7 @@ def start_sending_emails(message):
         bot.send_message(message.chat.id, "الإرسال جاري بالفعل.")
         return
 
+    # تأكد من وجود البيانات الخاصة بالمطور أو الأدمن الحالي فقط
     if message.chat.id not in admin_data or 'email_list' not in admin_data[message.chat.id] or 'subject' not in admin_data[message.chat.id]:
         bot.send_message(message.chat.id, "يرجى تعيين الإيميلات والموضوع أولاً.")
         return
@@ -286,7 +283,6 @@ def start_sending_emails(message):
         return
 
     sending_active = True
-    sending_initiator = message.chat.id  # تخزين معرف المطور الذي بدأ العملية
     sent_count = 0
     sent_emails = []
     email_sent_count = {email: 0 for email in admin_data[message.chat.id]['email_list']}
