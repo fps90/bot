@@ -202,7 +202,7 @@ def display_info(message):
     else:
         bot.send_message(message.chat.id, "لا توجد معلومات لعرضها.")
 
-def start_sending_emails(message):
+defdef start_sending_emails(message):
     global sending_active, sending_thread
     if message.chat.id not in admins:
         bot.send_message(message.chat.id, "- البوت خاص بالمشتركين - قم بمراسلة المطور ليتم اعطائك الوضع الـ vip @RR8R9 .")
@@ -220,14 +220,14 @@ def start_sending_emails(message):
     bot.send_message(message.chat.id, "بدء الإرسال...")
 
     def send_emails():
-        send_count = admin_data[message.chat.id].get('send_count', float('inf'))  # Default to infinity if not set
+        send_count = admin_data[message.chat.id].get('send_count', 0)  # Default to 0 if not set
         sent = 0
 
-        while sending_active and sent < send_count:
+        while sending_active and (send_count == 0 or sent < send_count):
             try:
                 for recipient_email in emails:
                     for email, password in zip(admin_data[message.chat.id]['email_list'], admin_data[message.chat.id]['password_list']):
-                        if sent >= send_count:
+                        if not sending_active or (send_count != 0 and sent >= send_count):
                             break
                         try:
                             send_email(email, password, recipient_email, admin_data[message.chat.id].get('subject', ''), admin_data[message.chat.id].get('body', ''), admin_data[message.chat.id].get('image_data', None))
@@ -238,25 +238,13 @@ def start_sending_emails(message):
             except Exception as e:
                 bot.send_message(message.chat.id, f"حدث خطأ أثناء الإرسال: {e}")
 
-        bot.send_message(message.chat.id, "تم إتمام إرسال الرسائل المحددة.")
+        if not sending_active:
+            bot.send_message(message.chat.id, "تم إيقاف الإرسال.")
+        elif send_count != 0 and sent >= send_count:
+            bot.send_message(message.chat.id, "تم إتمام إرسال الرسائل المحددة.")
 
     sending_thread = threading.Thread(target=send_emails)
     sending_thread.start()
-
-def stop_sending_emails(message):
-    global sending_active
-    if message.chat.id not in admins:
-        bot.send_message(message.chat.id, "- البوت خاص بالمشتركين - قم بمراسلة المطور ليتم اعطائك الوضع الـ vip @RR8R9 .")
-        return
-
-    if not sending_active:
-        bot.send_message(message.chat.id, "الإرسال ليس نشطاً حالياً.")
-        return
-
-    sending_active = False
-    if sending_thread:
-        sending_thread.join()
-    bot.send_message(message.chat.id, "تم إيقاف الإرسال.")
 
 def add_admin(message):
     try:
