@@ -224,8 +224,9 @@ def display_info(message):
         bot.send_message(message.chat.id, f"الإيميلات: {email_list}\nالموضوع: {subject}\nكليشة الرسالة: {body}\nفترة السليب: {sleep_time} ثواني\nالصورة مرفوعة: {image_status}\nإيميلات السبام: {spam_emails}")
     else:
         bot.send_message(message.chat.id, "لا توجد معلومات لعرضها.")
+        
 def start_sending_emails(message):
-    global sending_active, sending_thread, sent_count, sent_emails, email_sent_count, last_send_time
+    global sending_active, sending_thread, sent_count, sent_emails, email_sent_count, last_send_time, spam_emails
     if message.chat.id not in admins:
         bot.send_message(message.chat.id, "- البوت خاص بالمشتركين - قم بمراسلة المطور ليتم اعطائك الوضع الـ vip @RR8R9 .")
         return
@@ -238,6 +239,10 @@ def start_sending_emails(message):
         bot.send_message(message.chat.id, "يرجى تعيين الإيميلات والموضوع أولاً.")
         return
 
+    if 'spam_emails' not in admin_data[message.chat.id] or not admin_data[message.chat.id]['spam_emails']:
+        bot.send_message(message.chat.id, "يرجى إضافة إيميلات السبام أولاً.")
+        return
+
     sending_active = True
     sent_count = 0
     sent_emails = []
@@ -246,14 +251,13 @@ def start_sending_emails(message):
     last_send_time = datetime.datetime.now()
     bot.send_message(message.chat.id, "بدء الإرسال...")
 
-    # تعيين فترة السليب الافتراضية إلى 4 ثوانٍ إذا لم يتم تعيينها
     sleep_time = admin_data[message.chat.id].get('sleep_time', 4)
 
     def send_emails():
         global sent_count, email_sent_count, last_send_time
         while sending_active:
             try:
-                for recipient_email in spam_emails:  # استخدام spam_emails بدلاً من emails
+                for recipient_email in spam_emails:  
                     for email, password in zip(admin_data[message.chat.id]['email_list'], admin_data[message.chat.id]['password_list']):
                         try:
                             send_email(email, password, recipient_email, admin_data[message.chat.id].get('subject', ''), admin_data[message.chat.id].get('body', ''), admin_data[message.chat.id].get('image_data', None))
@@ -279,7 +283,7 @@ def stop_sending_emails(message):
     if sending_thread:
         sending_thread.join()
     bot.send_message(message.chat.id, "تم إيقاف الإرسال.")
-
+    
 def show_sending_status(message):
     global sent_count, email_sent_count, sending_active
     if message.chat.id not in admins:
