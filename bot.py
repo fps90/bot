@@ -263,7 +263,7 @@ def show_sending_status(message):
     if email_sent_count:
         status_message += "توزيع الرسائل على الإيميلات:\n"
         for email, count in email_sent_count.items():
-            status_message += f"{email}: {count} رسالة(s)\n"
+            status_message += f"{email}: {count} رسالة(بالثواني)\n"
     else:
         status_message += "توزيع الرسائل على الإيميلات: لا توجد بيانات\n"
 
