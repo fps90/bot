@@ -276,8 +276,7 @@ def show_sending_status(message):
         status_message += "\nحالة الحسابات: لا توجد بيانات"
 
     bot.send_message(message.chat.id, status_message)
-
-    bot.send_message(message.chat.id, status_message)
+    
 def add_admin(message):
     try:
         new_admin_id = int(message.text)
