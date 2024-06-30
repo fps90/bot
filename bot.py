@@ -33,29 +33,43 @@ def send_welcome(message):
         bot.send_message(message.chat.id, "- البوت خاص بالمشتركين - قم بمراسلة المطور ليتم اعطائك الوضع الـ vip @RR8R9 .")
         return
 
-    markup = types.InlineKeyboardMarkup(row_width=3)
+    # تعريف وتنظيم الأزرار
+    markup = types.InlineKeyboardMarkup()
+    
+    # زر أعلى
+    markup.add(types.InlineKeyboardButton("أضف ايميلات", callback_data="add_emails"))
+    
+    # أزرار في الصف الأول (يمين ويسار)
     markup.add(
-        types.InlineKeyboardButton("أضف ايميلات", callback_data="add_emails"),
         types.InlineKeyboardButton("أضف موضوع", callback_data="add_subject"),
         types.InlineKeyboardButton("أضف كليشة الارسال", callback_data="add_body")
     )
+    
+    # زر أسفلهم
+    markup.add(types.InlineKeyboardButton("أضف صورة", callback_data="add_image"))
+    
+    # أزرار في الصف التالي (يمين ويسار)
     markup.add(
-        types.InlineKeyboardButton("أضف صورة", callback_data="add_image"),
         types.InlineKeyboardButton("تعيين سليب", callback_data="set_sleep"),
         types.InlineKeyboardButton("عرض المعلومات", callback_data="save_info")
     )
+    
+    # زر أسفلهم
+    markup.add(types.InlineKeyboardButton("مسح المعلومات", callback_data="clear_info"))
+    
+    # أزرار في الصف التالي (يمين ويسار)
     markup.add(
-        types.InlineKeyboardButton("مسح المعلومات", callback_data="clear_info"),
         types.InlineKeyboardButton("بدء الارسال", callback_data="start_sending"),
         types.InlineKeyboardButton("إيقاف الإرسال", callback_data="stop_sending")
     )
-    markup.add(
-        types.InlineKeyboardButton("حالة الإرسال", callback_data="show_status")
-    )
+    
+    # زر أسفلهم
+    markup.add(types.InlineKeyboardButton("حالة الإرسال", callback_data="show_status"))
+    
     bot.send_message(message.chat.id, "ok :", reply_markup=markup)
 
     if message.chat.id in [DEVELOPER_ID1, DEVELOPER_ID2]:
-        admin_markup = types.InlineKeyboardMarkup(row_width=3)
+        admin_markup = types.InlineKeyboardMarkup()
         admin_markup.add(
             types.InlineKeyboardButton("أضف ادمن", callback_data="add_admin"),
             types.InlineKeyboardButton("إزالة ادمن", callback_data="remove_admin"),
