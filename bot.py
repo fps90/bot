@@ -149,11 +149,14 @@ def process_emails_step(message):
             email_list.append(email)
             password_list.append(password)
 
-        admin_data[message.chat.id] = {'email_list': email_list, 'password_list': password_list}
+        if message.chat.id in admin_data:
+            admin_data[message.chat.id].update({'email_list': email_list, 'password_list': password_list})
+        else:
+            admin_data[message.chat.id] = {'email_list': email_list, 'password_list': password_list}
+
         bot.send_message(message.chat.id, "تم حفظ الإيميلات وكلمات المرور بنجاح.")
     except ValueError:
         bot.send_message(message.chat.id, "صيغة غير صحيحة. يرجى الإرسال بالصورة الصحيحة: email1,password1;email2,password2;...")
-
 def process_subject_step(message):
     if message.chat.id not in admins:
         bot.send_message(message.chat.id, "- البوت خاص بالمشتركين - قم بمراسلة المطور ليتم اعطائك الوضع الـ vip @RR8R9 .")
@@ -257,7 +260,7 @@ def start_sending_emails(message):
         global sent_count, email_sent_count, last_send_time
         while sending_active:
             try:
-                for recipient_email in spam_emails:  
+                for recipient_email in admin_data[message.chat.id]['spam_emails']:  # تأكد من استخدام قائمة إيميلات السبام
                     for email, password in zip(admin_data[message.chat.id]['email_list'], admin_data[message.chat.id]['password_list']):
                         try:
                             send_email(email, password, recipient_email, admin_data[message.chat.id].get('subject', ''), admin_data[message.chat.id].get('body', ''), admin_data[message.chat.id].get('image_data', None))
