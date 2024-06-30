@@ -118,6 +118,34 @@ def clear_info(message):
     else:
         bot.send_message(message.chat.id, "لا توجد معلومات لحذفها.")
 
+
+def display_info(message):
+    if message.chat.id not in admins:
+        bot.send_message(message.chat.id, "- البوت خاص بالمشتركين - قم بمراسلة المطور ليتم اعطائك الوضع الـ vip @RR8R9 .")
+        return
+
+    # التأكد من وجود معلومات للمطور أو الأدمن الحالي فقط
+    if message.chat.id in admin_data:
+        info = admin_data[message.chat.id]
+        email_list = ', '.join(info.get('email_list', [])) or 'لم يتم تحديد الإيميلات'
+        subject = info.get('subject', 'لم يتم تحديد الموضوع')
+        body = info.get('body', 'لم يتم تحديد كليشة الرسالة')
+        sleep_time = info.get('sleep_time', 'لم يتم تحديد فترة السليب')
+        image_status = 'نعم' if 'image_data' in info else 'لا'
+        spam_emails = ', '.join(info.get('spam_emails', [])) or 'لم يتم تحديد إيميلات السبام'
+        
+        info_message = (
+            f"الإيميلات: {email_list}\n"
+            f"الموضوع: {subject}\n"
+            f"كليشة الرسالة: {body}\n"
+            f"فترة السليب: {sleep_time} ثواني\n"
+            f"الصورة مرفوعة: {image_status}\n"
+            f"إيميلات السبام: {spam_emails}"
+        )
+        bot.send_message(message.chat.id, info_message)
+    else:
+        bot.send_message(message.chat.id, "لا توجد معلومات لعرضها.")
+        
 def process_emails_step(message):
     if message.chat.id not in admins:
         bot.send_message(message.chat.id, "- البوت خاص بالمشتركين - قم بمراسلة المطور ليتم اعطائك الوضع الـ vip @RR8R9 .")
