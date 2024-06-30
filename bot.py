@@ -224,6 +224,15 @@ def stop_sending_emails(message):
     else:
         bot.send_message(message.chat.id, "الإرسال غير مفعل حالياً.")
 
+def display_info(message):
+    if message.chat.id not in admins:
+        bot.send_message(message.chat.id, "- البوت خاص بالمشتركين - قم بمراسلة المطور ليتم إعطائك الوضع الـ vip @RR8R9 .")
+        return
+
+    data = admin_data.get(message.chat.id, {})
+    info = "\n".join([f"{key}: {value}" for key, value in data.items()])
+    bot.send_message(message.chat.id, f"المعلومات الحالية:\n{info}")
+    
 def show_sending_status(message):
     if message.chat.id not in admins:
         bot.send_message(message.chat.id, "- البوت خاص بالمشتركين - قم بمراسلة المطور ليتم اعطائك الوضع الـ vip @RR8R9 .")
