@@ -319,6 +319,9 @@ def add_admin(message):
 def remove_admin(message):
     try:
         admin_id = int(message.text)
+        if admin_id in [DEVELOPER_ID1, DEVELOPER_ID2]:
+            bot.send_message(message.chat.id, "- لا يمكنك إزالة نفسك عزيزي المطور .")
+            return
         if admin_id in admins:
             admins.remove(admin_id)
             bot.send_message(message.chat.id, f"تمت إزالة المستخدم {admin_id} من قائمة الأدمنز.")
@@ -328,8 +331,19 @@ def remove_admin(message):
         bot.send_message(message.chat.id, "يرجى إدخال معرف صحيح.")
 
 def show_admin_ids(message):
-    admin_ids = "\n".join(str(admin) for admin in admins)
-    bot.send_message(message.chat.id, f"قائمة الأدمنز الحالية:\n{admin_ids}")
+    developer_ids = [DEVELOPER_ID1, DEVELOPER_ID2]
+    
+    admins_list = [admin for admin in admins if admin not in developer_ids]
+    
+    developer_list = "\n".join(str(dev) for dev in developer_ids)
+    admin_list = "\n".join(str(admin) for admin in admins_list)
+    
+    response_message = (
+        "مطورين البوت :\n" + developer_list + "\n\n" +
+        "الأدمنية :\n" + admin_list
+    )
+
+    bot.send_message(message.chat.id, response_message)
 
 def send_email(email, password, to_email, subject, body, image_data):
     try:
