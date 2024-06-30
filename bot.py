@@ -7,6 +7,7 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.image import MIMEImage
 from io import BytesIO
 import threading
+import datetime
 
 bot = telebot.TeleBot("5793326527:AAHkcE3j6xEmi-mN9mN6uSq84ev2G1bPERw")
 
@@ -22,6 +23,9 @@ emails = ["abuse@telegram.org", "Support@telegram.org", "Security@telegram.org",
 sent_count = 0
 sent_emails = []
 email_sent_count = {}
+failed_emails = []
+email_send_times = {}
+last_send_time = None
 
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
@@ -190,7 +194,7 @@ def display_info(message):
         bot.send_message(message.chat.id, "لا توجد معلومات لعرضها.")
 
 def start_sending_emails(message):
-    global sending_active, sending_thread, sent_count, sent_emails, email_sent_count
+    global sending_active, sending_thread, sent_count, sent_emails, email_sent_count, last_send_time
     if message.chat.id not in admins:
         bot.send_message(message.chat.id, "- البوت خاص بالمشتركين - قم بمراسلة المطور ليتم اعطائك الوضع الـ vip @RR8R9 .")
         return
@@ -207,10 +211,12 @@ def start_sending_emails(message):
     sent_count = 0
     sent_emails = []
     email_sent_count = {email: 0 for email in admin_data[message.chat.id]['email_list']}
+    failed_emails = []
+    last_send_time = datetime.datetime.now()
     bot.send_message(message.chat.id, "بدء الإرسال...")
 
     def send_emails():
-        global sent_count
+        global sent_count, email_sent_count, last_send_time
         while sending_active:
             try:
                 for recipient_email in emails:
@@ -220,11 +226,11 @@ def start_sending_emails(message):
                             sent_count += 1
                             email_sent_count[email] += 1
                         except Exception as e:
-                            # Log errors but don't notify via bot
-                            sent_emails.append(f"حدث خطأ أثناء إرسال الرسالة من {email}: {e}")
+                            failed_emails.append(f"حدث خطأ أثناء إرسال الرسالة من {email} إلى {recipient_email}: {e}")
                     time.sleep(admin_data[message.chat.id].get('sleep_time', 4))
+                last_send_time = datetime.datetime.now()
             except Exception as e:
-                sent_emails.append(f"حدث خطأ أثناء الإرسال: {e}")
+                failed_emails.append(f"حدث خطأ أثناء الإرسال: {e}")
 
     sending_thread = threading.Thread(target=send_emails)
     sending_thread.start()
@@ -241,21 +247,31 @@ def stop_sending_emails(message):
     bot.send_message(message.chat.id, "تم إيقاف الإرسال.")
 
 def show_sending_status(message):
-    global sent_count, sent_emails, email_sent_count
+    global sent_count, sent_emails, email_sent_count, sending_active, last_send_time
     if message.chat.id not in admins:
         bot.send_message(message.chat.id, "- البوت خاص بالمشتركين - قم بمراسلة المطور ليتم اعطائك الوضع الـ vip @RR8R9 .")
+        return
+
+    if not sending_active:
+        bot.send_message(message.chat.id, "لا توجد عمليات إرسال نشطة في الوقت الحالي.")
         return
 
     status_message = f"عدد الرسائل المرسلة: {sent_count}\n"
     if email_sent_count:
         status_message += "توزيع الرسائل على الإيميلات:\n"
         for email, count in email_sent_count.items():
-            status_message += f"{email}: {count} رسالة(ث)\n"
+            status_message += f"{email}: {count} رسالة(s)\n"
+    else:
+        status_message += "توزيع الرسائل على الإيميلات: لا توجد بيانات\n"
+
     if sent_emails:
         status_message += "تفاصيل الإرسال:\n" + "\n".join(sent_emails)
     else:
         status_message += "لا توجد تفاصيل إرسال حالياً."
 
+    if last_send_time:
+        elapsed_time = datetime.datetime.now() - last_send_time
+        status_message += f"\nآخر عملية إرسال تمت قبل: {str(elapsed_time).split('.')[0]}"
     bot.send_message(message.chat.id, status_message)
 
 def add_admin(message):
