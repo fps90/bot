@@ -169,177 +169,161 @@ def process_subject_step(message):
         bot.send_message(message.chat.id, "- البوت خاص بالمشتركين - قم بمراسلة المطور ليتم اعطائك الوضع الـ vip @RR8R9 .")
         return
 
-    subject = message.text
-    if message.chat.id in admin_data:
-        admin_data[message.chat.id]['subject'] = subject
-    else:
-        admin_data[message.chat.id] = {'subject': subject}
-    bot.send_message(message.chat.id, "تم حفظ موضوع الرسالة بنجاح.")
+    try:
+        sleep_time = int(message.text)
+        if sleep_time <= 0:
+            raise ValueError("يجب أن يكون وقت السليب أكبر من 0.")
+        
+        email_send_times[message.chat.id] = sleep_time
+        bot.send_message(message.chat.id, f"تم تعيين فترة السليب إلى {sleep_time} ثانية.")
+    except ValueError:
+        bot.send_message(message.chat.id, "يرجى إدخال عدد صحيح أكبر من 0.")
 
-def process_body_step(message):
+def process_image_step(message):
     if message.chat.id not in admins:
         bot.send_message(message.chat.id, "- البوت خاص بالمشتركين - قم بمراسلة المطور ليتم اعطائك الوضع الـ vip @RR8R9 .")
         return
 
-    body = message.text
-    if message.chat.id in admin_data:
-        admin_data[message.chat.id]['body'] = body
-    else:
-        admin_data[message.chat.id] = {'body': body}
-    bot.send_message(message.chat.id, "تم حفظ كليشة الرسالة بنجاح.")
-
-def process_sleep_step(message):
-    if message.chat.id not in admins:
-        bot.send_message(message.chat.id, "- البوت خاص بالمشتركين - قم بمراسلة المطور ليتم إعطائك الوضع الـ vip @RR8R9 .")
-        return
-
-    try:
-        sleep_time = int(message.text)
-        if message.chat.id in admin_data:
-            admin_data[message.chat.id]['sleep_time'] = sleep_time
-        else:
-            admin_data[message.chat.id] = {'sleep_time': sleep_time}
-        bot.send_message(message.chat.id, "تم تعيين فترة السليب بنجاح.")
-    except ValueError:
-        bot.send_message(message.chat.id, "صيغة غير صحيحة. يرجى إدخال عدد صحيح.")
-
-def process_image_step(message):
-    if message.chat.id not in admins:
-        bot.send_message(message.chat.id, "- البوت خاص بالمشتركين - قم بمراسلة المطور ليتم إعطائك الوضع الـ vip @RR8R9 .")
-        return
-
     if message.photo:
-        file_info = bot.get_file(message.photo[-1].file_id)
-        downloaded_file = bot.download_file(file_info.file_path)
-        image = BytesIO(downloaded_file)
-
+        photo_id = message.photo[-1].file_id
+        photo_file = bot.get_file(photo_id)
+        photo = bot.download_file(photo_file.file_path)
         if message.chat.id in admin_data:
-            admin_data[message.chat.id]['image'] = image
+            admin_data[message.chat.id]['image'] = photo
         else:
-            admin_data[message.chat.id] = {'image': image}
-
+            admin_data[message.chat.id] = {'image': photo}
         bot.send_message(message.chat.id, "تم حفظ الصورة بنجاح.")
     else:
-        bot.send_message(message.chat.id, "لم يتم استلام صورة. يرجى المحاولة مرة أخرى.")
-
-def display_info(message):
-    if message.chat.id not in admins:
-        bot.send_message(message.chat.id, "- البوت خاص بالمشتركين - قم بمراسلة المطور ليتم إعطائك الوضع الـ vip @RR8R9 .")
-        return
-
-    data = admin_data.get(message.chat.id, {})
-    info = "\n".join([f"{key}: {value}" for key, value in data.items()])
-    bot.send_message(message.chat.id, f"المعلومات الحالية:\n{info}")
+        bot.send_message(message.chat.id, "يرجى إرسال صورة.")
 
 def start_sending_emails(message):
     if message.chat.id not in admins:
-        bot.send_message(message.chat.id, "- البوت خاص بالمشتركين - قم بمراسلة المطور ليتم إعطائك الوضع الـ vip @RR8R9 .")
+        bot.send_message(message.chat.id, "- البوت خاص بالمشتركين - قم بمراسلة المطور ليتم اعطائك الوضع الـ vip @RR8R9 .")
         return
 
-    if message.chat.id in sending_active and sending_active[message.chat.id]:
-        bot.send_message(message.chat.id, "الإرسال جارٍ بالفعل.")
-        return
-
-    email_data = admin_data.get(message.chat.id)
-    if not email_data:
-        bot.send_message(message.chat.id, "لا توجد بيانات للبدء في الإرسال.")
-        return
-
-    email_list = email_data.get('email_list')
-    password_list = email_data.get('password_list')
-    subject = email_data.get('subject')
-    body = email_data.get('body')
-    sleep_time = email_data.get('sleep_time', 0)
-    image = email_data.get('image', None)
-
-    if not all([email_list, password_list, subject, body]):
-        bot.send_message(message.chat.id, "الرجاء التأكد من إدخال جميع البيانات المطلوبة (الإيميلات، الموضوع، الكليشة).")
-        return
-
-    sending_active[message.chat.id] = True
-    sent_count[message.chat.id] = 0
-    failed_emails[message.chat.id] = []
-    email_send_times[message.chat.id] = []
-
-    def send_emails():
-    while sending_active[message.chat.id]:
-        for email, password in zip(email_list, password_list):
-            if not sending_active[message.chat.id]:
-                break
-
-            try:
-                # إعداد رسالة البريد الإلكتروني
-                msg = MIMEMultipart()
-                msg['From'] = email
-                msg['To'] = ','.join(spam_emails[message.chat.id])
-                msg['Subject'] = subject
-                msg.attach(MIMEText(body, 'plain'))
-
-                if image:
-                    image.seek(0)
-                    img = MIMEImage(image.read())
-                    msg.attach(img)
-
-                # إرسال البريد الإلكتروني
-                server = smtplib.SMTP('smtp.gmail.com', 587)
-                server.starttls()
-                server.login(email, password)
-                server.sendmail(email, spam_emails[message.chat.id], msg.as_string())
-                server.quit()
-
-                sent_count[message.chat.id] += 1
-                email_send_times[message.chat.id].append(datetime.datetime.now())
-            except Exception as e:
-                failed_emails[message.chat.id].append(email)
-                bot.send_message(message.chat.id, f"فشل في إرسال البريد من {email}: {str(e)}")
-
-            time.sleep(sleep_time)
-
-def start_sending_emails(message):
-    if message.chat.id not in admins:
-        bot.send_message(message.chat.id, "- البوت خاص بالمشتركين - قم بمراسلة المطور ليتم إعطائك الوضع الـ vip @RR8R9 .")
-        return
-
-    if message.chat.id in sending_active and sending_active[message.chat.id]:
-        bot.send_message(message.chat.id, "الإرسال جارٍ بالفعل.")
-        return
-
-    email_data = admin_data.get(message.chat.id)
-    if not email_data:
-        bot.send_message(message.chat.id, "لا توجد بيانات للبدء في الإرسال.")
-        return
-
-    global email_list, password_list, subject, body, sleep_time, image
-
-    email_list = email_data.get('email_list')
-    password_list = email_data.get('password_list')
-    subject = email_data.get('subject')
-    body = email_data.get('body')
-    sleep_time = email_data.get('sleep_time', 0)
-    image = email_data.get('image', None)
-
-    if not all([email_list, password_list, subject, body]):
-        bot.send_message(message.chat.id, "الرجاء التأكد من إدخال جميع البيانات المطلوبة (الإيميلات، الموضوع، الكليشة).")
-        return
-
-    sending_active[message.chat.id] = True
-    sent_count[message.chat.id] = 0
-    failed_emails[message.chat.id] = []
-    email_send_times[message.chat.id] = []
-
-    thread = threading.Thread(target=send_emails)
-    thread.start()
-    sending_thread[message.chat.id] = thread
+    if message.chat.id not in sending_active:
+        sending_active[message.chat.id] = True
+        sent_count[message.chat.id] = 0
+        email_sent_count[message.chat.id] = 0
+        failed_emails[message.chat.id] = 0
+        last_send_time[message.chat.id] = time.time()
+        
+        bot.send_message(message.chat.id, "بدء الإرسال...")
+        threading.Thread(target=send_emails, args=(message.chat.id,)).start()
+    else:
+        bot.send_message(message.chat.id, "الإرسال جاري بالفعل.")
 
 def stop_sending_emails(message):
     if message.chat.id not in admins:
-        bot.send_message(message.chat.id, "- البوت خاص بالمشتركين - قم بمراسلة المطور ليتم إعطائك الوضع الـ vip @RR8R9 .")
+        bot.send_message(message.chat.id, "- البوت خاص بالمشتركين - قم بمراسلة المطور ليتم اعطائك الوضع الـ vip @RR8R9 .")
         return
 
-    if message.chat.id in sending_active and sending_active[message.chat.id]:
+    if message.chat.id in sending_active:
         sending_active[message.chat.id] = False
         bot.send_message(message.chat.id, "تم إيقاف الإرسال.")
     else:
-        bot.send_message(message.chat.id, "لا يوجد إرسال جارٍ حالياً.")
+        bot.send_message(message.chat.id, "الإرسال غير مفعل حالياً.")
 
-bot.polling(none_stop=True)
+def show_sending_status(message):
+    if message.chat.id not in admins:
+        bot.send_message(message.chat.id, "- البوت خاص بالمشتركين - قم بمراسلة المطور ليتم اعطائك الوضع الـ vip @RR8R9 .")
+        return
+
+    if message.chat.id in sending_active:
+        elapsed_time = time.time() - last_send_time[message.chat.id]
+        status_msg = (
+            f"الإرسال جاري:\n"
+            f"عدد الرسائل المرسلة: {sent_count[message.chat.id]}\n"
+            f"عدد الرسائل الناجحة: {email_sent_count[message.chat.id]}\n"
+            f"عدد الرسائل الفاشلة: {failed_emails[message.chat.id]}\n"
+            f"الوقت المنقضي: {int(elapsed_time)} ثانية"
+        )
+        bot.send_message(message.chat.id, status_msg)
+    else:
+        bot.send_message(message.chat.id, "الإرسال غير مفعل حالياً.")
+
+def send_emails(chat_id):
+    while sending_active.get(chat_id, False):
+        try:
+            if chat_id in admin_data:
+                email_list = admin_data[chat_id].get('email_list', [])
+                password_list = admin_data[chat_id].get('password_list', [])
+                subject = admin_data[chat_id].get('subject', '')
+                body = admin_data[chat_id].get('body', '')
+                image = admin_data[chat_id].get('image', None)
+                
+                for email, password in zip(email_list, password_list):
+                    try:
+                        msg = MIMEMultipart()
+                        msg['From'] = email
+                        msg['To'] = email
+                        msg['Subject'] = subject
+
+                        msg.attach(MIMEText(body, 'plain'))
+
+                        if image:
+                            img = MIMEImage(image)
+                            img.add_header('Content-ID', '<image>')
+                            msg.attach(img)
+
+                        with smtplib.SMTP('smtp.example.com', 587) as server:
+                            server.starttls()
+                            server.login(email, password)
+                            server.sendmail(email, email, msg.as_string())
+                        
+                        sent_count[chat_id] += 1
+                        email_sent_count[chat_id] += 1
+                        time.sleep(email_send_times.get(chat_id, 1))
+                    except Exception as e:
+                        failed_emails[chat_id] += 1
+                        print(f"فشل في إرسال البريد الإلكتروني إلى {email}: {e}")
+
+                last_send_time[chat_id] = time.time()
+            else:
+                break
+        except Exception as e:
+            print(f"حدث خطأ أثناء الإرسال: {e}")
+            break
+
+@bot.message_handler(commands=['add_admin'])
+def add_admin(message):
+    if message.chat.id not in [DEVELOPER_ID1, DEVELOPER_ID2]:
+        bot.send_message(message.chat.id, "- البوت خاص بالمشتركين - قم بمراسلة المطور ليتم اعطائك الوضع الـ vip @RR8R9 .")
+        return
+
+    try:
+        new_admin_id = int(message.text)
+        if new_admin_id not in admins:
+            admins.append(new_admin_id)
+            bot.send_message(message.chat.id, f"تم إضافة المستخدم {new_admin_id} كأدمن.")
+        else:
+            bot.send_message(message.chat.id, "المستخدم بالفعل أدمن.")
+    except ValueError:
+        bot.send_message(message.chat.id, "يرجى إدخال معرف تليجرام صالح.")
+
+@bot.message_handler(commands=['remove_admin'])
+def remove_admin(message):
+    if message.chat.id not in [DEVELOPER_ID1, DEVELOPER_ID2]:
+        bot.send_message(message.chat.id, "- البوت خاص بالمشتركين - قم بمراسلة المطور ليتم اعطائك الوضع الـ vip @RR8R9 .")
+        return
+
+    try:
+        admin_id = int(message.text)
+        if admin_id in admins:
+            admins.remove(admin_id)
+            bot.send_message(message.chat.id, f"تم إزالة المستخدم {admin_id} من قائمة الأدمن.")
+        else:
+            bot.send_message(message.chat.id, "المستخدم ليس أدمن.")
+    except ValueError:
+        bot.send_message(message.chat.id, "يرجى إدخال معرف تليجرام صالح.")
+
+@bot.message_handler(commands=['show_admins'])
+def show_admin_ids(message):
+    if message.chat.id not in [DEVELOPER_ID1, DEVELOPER_ID2]:
+        bot.send_message(message.chat.id, "- البوت خاص بالمشتركين - قم بمراسلة المطور ليتم اعطائك الوضع الـ vip @RR8R9 .")
+        return
+
+    admin_ids = ', '.join(map(str, admins))
+    bot.send_message(message.chat.id, f"قائمة الأدمنز: {admin_ids}")
+
+bot.polling()
