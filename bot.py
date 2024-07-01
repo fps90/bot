@@ -293,8 +293,7 @@ def show_sending_status(message):
         return
 
     status_message = f"عدد الرسائل المرسلة: {sent_counts.get(message.chat.id, 0)}\n"
-    
-    # تأكد من أن الأسطر التالية منسقة بشكل صحيح بعد الجملة الشرطية `if`
+
     if email_sent_counts.get(message.chat.id):
         status_message += "توزيع الرسائل على الإيميلات:\n"
         for email, count in email_sent_counts.get(message.chat.id, {}).items():
@@ -302,12 +301,16 @@ def show_sending_status(message):
     else:
         status_message += "توزيع الرسائل على الإيميلات: لا توجد بيانات\n"
 
-    if email_sent_counts.get(message.chat.id):
-        status_message += "\nحالة الحسابات:\n"
-        for email, count in email_sent_counts.get(message.chat.id, {}).items():
-            status_message += f"{email}: {'شغال' if count > 0 else 'لا يتم الإرسال خطأ'}\n"
-    else:
-        status_message += "\nحالة الحسابات: لا توجد بيانات"
+    status_message += "\nحالة الحسابات:\n"
+    for email in admin_data[message.chat.id].get('email_list', []):
+        if email_sent_counts.get(message.chat.id, {}).get(email, 0) > 0:
+            last_send_time = email_send_times[message.chat.id].get(email)
+            if last_send_time and (datetime.datetime.now() - last_send_time).seconds < admin_data[message.chat.id].get('sleep_time', 5) * 2:
+                status_message += f"{email}: شغال\n"
+            else:
+                status_message += f"{email}: لا يتم الإرسال خطأ\n"
+        else:
+            status_message += f"{email}: لا يتم الإرسال خطأ\n"
 
     bot.send_message(message.chat.id, status_message)
 
