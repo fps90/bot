@@ -67,7 +67,7 @@ def send_welcome(message):
         admin_markup.add(types.InlineKeyboardButton("أضف ادمن", callback_data="add_admin"))
         admin_markup.add(
             types.InlineKeyboardButton("إزالة ادمن", callback_data="remove_admin"),
-            types.InlineKeyboardButton("عرض الادمنز", callback_data="show_admins")
+            types.InlineKeyboardButton("عرض الأدمنية", callback_data="show_admins")
         )
         bot.send_message(message.chat.id, "التحكم :", reply_markup=admin_markup)
 
