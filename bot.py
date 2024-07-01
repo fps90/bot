@@ -229,8 +229,18 @@ def display_info(message):
         bot.send_message(message.chat.id, "- البوت خاص بالمشتركين - قم بمراسلة المطور ليتم اعطائك الوضع الـ vip @RR8R9 .")
         return
 
-    info = admin_data.get(message.chat.id, "لا توجد معلومات لعرضها.")
-    bot.send_message(message.chat.id, str(info))
+    # تأكد من عرض المعلومات الخاصة بالمطور أو الأدمن الحالي فقط
+    if message.chat.id in admin_data:
+        info = admin_data[message.chat.id]
+        email_list = info.get('email_list', 'لم يتم تحديد الإيميلات')
+        subject = info.get('subject', 'لم يتم تحديد الموضوع')
+        body = info.get('body', 'لم يتم تحديد كليشة الرسالة')
+        sleep_time = info.get('sleep_time', 'لم يتم تحديد فترة السليب')
+        image_status = 'نعم' if 'image_data' in info else 'لا'
+        spam_emails = info.get('spam_emails', 'لم يتم تحديد إيميلات السبام')
+        bot.send_message(message.chat.id, f"الإيميلات: {email_list}\nالموضوع: {subject}\nكليشة الرسالة: {body}\nفترة السليب: {sleep_time} ثواني\nالصورة مرفوعة: {image_status}\nإيميلات السبام: {spam_emails}")
+    else:
+        bot.send_message(message.chat.id, "لا توجد معلومات لعرضها.")
 
 def start_sending_emails(message):
     if message.chat.id not in admins:
@@ -308,7 +318,7 @@ def send_emails(admin_id):
     subject = admin_data[admin_id].get('subject', "")
     body = admin_data[admin_id].get('body', "")
     image = admin_data[admin_id].get('image', None)
-    sleep_time = admin_data[admin_id].get('sleep_time', 4)  # Default sleep time of 4 seconds
+    sleep_time = admin_data[admin_id].get('sleep_time', 5)
     spam_email_list = admin_data[admin_id].get('spam_emails', [])
 
     while sending_active.get(admin_id, False):
@@ -319,7 +329,7 @@ def send_emails(admin_id):
             try:
                 msg = MIMEMultipart()
                 msg['From'] = email
-                msg['To'] = ', '.join(spam_email_list)  # Make sure we are sending to spam emails
+                msg['To'] = ', '.join(spam_email_list)
                 msg['Subject'] = subject
                 msg.attach(MIMEText(body, 'plain'))
                 
