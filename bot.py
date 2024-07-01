@@ -397,5 +397,5 @@ def show_admin_ids(message):
     )
     bot.send_message(message.chat.id, response_message)
 
-bot.polling()
+bot.polling(none_stop=True)
         
