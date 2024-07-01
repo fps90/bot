@@ -321,6 +321,10 @@ def send_emails(admin_id):
     sleep_time = admin_data[admin_id].get('sleep_time', 5)
     spam_email_list = admin_data[admin_id].get('spam_emails', [])
 
+    if not email_list or not password_list:
+        bot.send_message(admin_id, "لا توجد بيانات كافية لإرسال الرسائل.")
+        return
+
     while sending_active.get(admin_id, False):
         for i, (email, password) in enumerate(zip(email_list, password_list)):
             if not sending_active.get(admin_id, False):
@@ -335,13 +339,14 @@ def send_emails(admin_id):
                 
                 if image:
                     img = MIMEImage(image.getvalue())
+                    img.add_header('Content-ID', '<image1>')
                     msg.attach(img)
 
-                server = smtplib.SMTP('smtp.gmail.com', 587)
-                server.starttls()
-                server.login(email, password)
-                server.sendmail(email, spam_email_list, msg.as_string())
-                server.quit()
+                # Set up the SMTP server and send the email
+                with smtplib.SMTP('smtp.gmail.com', 587) as server:
+                    server.starttls()
+                    server.login(email, password)
+                    server.sendmail(email, spam_email_list, msg.as_string())
 
                 sent_counts[admin_id] += 1
                 sent_emails[admin_id].append(email)
