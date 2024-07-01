@@ -203,7 +203,7 @@ def process_image_step(message):
             admin_data[message.chat.id]['image'] = image
         else:
             admin_data[message.chat.id] = {'image': image}
-        
+
         bot.send_message(message.chat.id, "تم حفظ الصورة بنجاح.")
     else:
         bot.send_message(message.chat.id, "لم يتم إرسال أي صورة. حاول مرة أخرى.")
@@ -229,14 +229,13 @@ def display_info(message):
         bot.send_message(message.chat.id, "- البوت خاص بالمشتركين - قم بمراسلة المطور ليتم اعطائك الوضع الـ vip @RR8R9 .")
         return
 
-    # تأكد من عرض المعلومات الخاصة بالمطور أو الأدمن الحالي فقط
     if message.chat.id in admin_data:
         info = admin_data[message.chat.id]
         email_list = info.get('email_list', 'لم يتم تحديد الإيميلات')
         subject = info.get('subject', 'لم يتم تحديد الموضوع')
         body = info.get('body', 'لم يتم تحديد كليشة الرسالة')
         sleep_time = info.get('sleep_time', 'لم يتم تحديد فترة السليب')
-        image_status = 'نعم' if 'image_data' in info else 'لا'
+        image_status = 'نعم' if 'image' in info else 'لا'
         spam_emails = info.get('spam_emails', 'لم يتم تحديد إيميلات السبام')
         bot.send_message(message.chat.id, f"الإيميلات: {email_list}\nالموضوع: {subject}\nكليشة الرسالة: {body}\nفترة السليب: {sleep_time} ثواني\nالصورة مرفوعة: {image_status}\nإيميلات السبام: {spam_emails}")
     else:
