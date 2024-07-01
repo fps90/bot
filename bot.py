@@ -274,21 +274,6 @@ def show_sending_status(message):
     if message.chat.id not in admins:
         bot.send_message(message.chat.id, "- البوت خاص بالمشتركين - قم بمراسلة المطور ليتم اعطائك الوضع الـ vip @RR8R9 .")
         return
-    
-    status = f"عدد الرسائل المرسلة: {sent_counts.get(message.chat.id, 0)}\n"
-    status += f"عدد الرسائل الفاشلة: {len(failed_emails.get(message.chat.id, []))}\n"
-    last_send_time = last_send_times.get(message.chat.id)
-    if last_send_time:
-        status += f"آخر إرسال كان في: {last_send_time.strftime('%Y-%m-%d %H:%M:%S')}"
-    else:
-        status += "لم يتم إرسال أي رسائل حتى الآن."
-    
-    bot.send_message(message.chat.id, status)
-
-def show_sending_status(message):
-    if message.chat.id not in admins:
-        bot.send_message(message.chat.id, "- البوت خاص بالمشتركين - قم بمراسلة المطور ليتم اعطائك الوضع الـ vip @RR8R9 .")
-        return
 
     if not sending_active.get(message.chat.id, False):
         bot.send_message(message.chat.id, "لا توجد عمليات إرسال نشطة في الوقت الحالي.")
@@ -334,7 +319,7 @@ def send_emails(admin_id):
             try:
                 msg = MIMEMultipart()
                 msg['From'] = email
-                msg['To'] = ', '.join(spam_email_list)
+                msg['To'] = ', '.join(spam_email_list)  # Make sure we are sending to spam emails
                 msg['Subject'] = subject
                 msg.attach(MIMEText(body, 'plain'))
                 
@@ -358,8 +343,6 @@ def send_emails(admin_id):
                 failed_emails[admin_id].append((email, str(e)))
 
             time.sleep(sleep_time)
-
-# بقية الكود كما هو
 
 def add_admin(message):
     try:
