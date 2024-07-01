@@ -26,7 +26,7 @@ failed_emails = {}
 email_send_times = {}
 last_send_times = {}
 spam_emails = {}
-
+error_counts = {}
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
     if message.chat.id not in admins:
@@ -303,19 +303,15 @@ def show_sending_status(message):
 
     status_message += "\nحالة الحسابات:\n"
     for email in admin_data[message.chat.id].get('email_list', []):
-        if email_sent_counts.get(message.chat.id, {}).get(email, 0) > 0:
-            last_send_time = email_send_times[message.chat.id].get(email)
-            if last_send_time and (datetime.datetime.now() - last_send_time).seconds < admin_data[message.chat.id].get('sleep_time', 5) * 2:
-                status_message += f"{email}: شغال\n"
-            else:
-                status_message += f"{email}: لا يتم الإرسال خطأ\n"
+        if error_counts.get(message.chat.id, {}).get(email, 0) < 5:
+            status_message += f"{email}: شغال\n"
         else:
             status_message += f"{email}: لا يتم الإرسال خطأ\n"
 
     bot.send_message(message.chat.id, status_message)
 
 def send_emails(admin_id):
-    global sent_counts, failed_emails, last_send_times
+    global sent_counts, failed_emails, last_send_times, error_counts
 
     email_list = admin_data[admin_id].get('email_list', [])
     password_list = admin_data[admin_id].get('password_list', [])
@@ -329,24 +325,25 @@ def send_emails(admin_id):
         bot.send_message(admin_id, "لا توجد بيانات كافية لإرسال الرسائل.")
         return
 
+    error_counts[admin_id] = {email: 0 for email in email_list}
+
     while sending_active.get(admin_id, False):
         for i, (email, password) in enumerate(zip(email_list, password_list)):
             if not sending_active.get(admin_id, False):
                 break
-            
+
             try:
                 msg = MIMEMultipart()
                 msg['From'] = email
                 msg['To'] = ', '.join(spam_email_list)
                 msg['Subject'] = subject
                 msg.attach(MIMEText(body, 'plain'))
-                
+
                 if image:
                     img = MIMEImage(image.getvalue())
                     img.add_header('Content-ID', '<image1>')
                     msg.attach(img)
 
-                # Set up the SMTP server and send the email
                 with smtplib.SMTP('smtp.gmail.com', 587, timeout=60) as server:
                     server.starttls()
                     server.login(email, password)
@@ -357,12 +354,13 @@ def send_emails(admin_id):
                 email_sent_counts[admin_id][email] = email_sent_counts[admin_id].get(email, 0) + 1
                 email_send_times[admin_id][email] = datetime.datetime.now()
                 last_send_times[admin_id] = datetime.datetime.now()
+                error_counts[admin_id][email] = 0  # Reset error count on successful send
 
             except Exception as e:
                 failed_emails[admin_id].append((email, str(e)))
+                error_counts[admin_id][email] += 1
 
             time.sleep(sleep_time)
-
 def add_admin(message):
     try:
         new_admin_id = int(message.text)
