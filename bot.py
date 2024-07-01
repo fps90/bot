@@ -326,11 +326,11 @@ def send_emails(admin_id):
         bot.send_message(admin_id, "لا توجد بيانات كافية لإرسال الرسائل.")
         return
 
-    while sending_active.get(admin_id, False):
+while sending_active.get(admin_id, False):
         for i, (email, password) in enumerate(zip(email_list, password_list)):
             if not sending_active.get(admin_id, False):
                 break
-            
+
             try:
                 msg = MIMEMultipart()
                 msg['From'] = email
@@ -344,7 +344,7 @@ def send_emails(admin_id):
                     msg.attach(img)
 
                 # Set up the SMTP server and send the email
-                with smtplib.SMTP('smtp.gmail.com', 587) as server:
+                with smtplib.SMTP('smtp.gmail.com', 587, timeout=60) as server:
                     server.starttls()
                     server.login(email, password)
                     server.sendmail(email, spam_email_list, msg.as_string())
