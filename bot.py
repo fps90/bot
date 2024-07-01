@@ -229,26 +229,8 @@ def display_info(message):
         bot.send_message(message.chat.id, "- البوت خاص بالمشتركين - قم بمراسلة المطور ليتم اعطائك الوضع الـ vip @RR8R9 .")
         return
 
-    if message.chat.id in admin_data:
-        info = admin_data[message.chat.id]
-        email_list = info.get('email_list', 'لم يتم تحديد الإيميلات')
-        subject = info.get('subject', 'لم يتم تحديد الموضوع')
-        body = info.get('body', 'لم يتم تحديد كليشة الرسالة')
-        sleep_time = info.get('sleep_time', 'لم يتم تحديد فترة السليب')
-        image_status = 'نعم' if 'image' in info else 'لا'
-        spam_emails = info.get('spam_emails', 'لم يتم تحديد إيميلات المطورين')
-        
-        info_message = (
-            f"الإيميلات: {email_list}\n"
-            f"الموضوع: {subject}\n"
-            f"كليشة الرسالة: {body}\n"
-            f"فترة السليب: {sleep_time} ثواني\n"
-            f"الصورة مرفوعة: {image_status}\n"
-            f"إيميلات المطورين: {spam_emails}"
-        )
-        bot.send_message(message.chat.id, info_message)
-    else:
-        bot.send_message(message.chat.id, "لا توجد معلومات لعرضها.")
+    info = admin_data.get(message.chat.id, "لا توجد معلومات لعرضها.")
+    bot.send_message(message.chat.id, str(info))
 
 def start_sending_emails(message):
     if message.chat.id not in admins:
@@ -292,6 +274,21 @@ def show_sending_status(message):
     if message.chat.id not in admins:
         bot.send_message(message.chat.id, "- البوت خاص بالمشتركين - قم بمراسلة المطور ليتم اعطائك الوضع الـ vip @RR8R9 .")
         return
+    
+    status = f"عدد الرسائل المرسلة: {sent_counts.get(message.chat.id, 0)}\n"
+    status += f"عدد الرسائل الفاشلة: {len(failed_emails.get(message.chat.id, []))}\n"
+    last_send_time = last_send_times.get(message.chat.id)
+    if last_send_time:
+        status += f"آخر إرسال كان في: {last_send_time.strftime('%Y-%m-%d %H:%M:%S')}"
+    else:
+        status += "لم يتم إرسال أي رسائل حتى الآن."
+    
+    bot.send_message(message.chat.id, status)
+
+def show_sending_status(message):
+    if message.chat.id not in admins:
+        bot.send_message(message.chat.id, "- البوت خاص بالمشتركين - قم بمراسلة المطور ليتم اعطائك الوضع الـ vip @RR8R9 .")
+        return
 
     if not sending_active.get(message.chat.id, False):
         bot.send_message(message.chat.id, "لا توجد عمليات إرسال نشطة في الوقت الحالي.")
@@ -304,14 +301,14 @@ def show_sending_status(message):
     status_message = f"عدد الرسائل المرسلة: {sent_counts.get(message.chat.id, 0)}\n"
     if email_sent_counts.get(message.chat.id):
         status_message += "توزيع الرسائل على الإيميلات:\n"
-        for email, count in email_sent_counts[message.chat.id].items():
-            status_message += f"{email}: {count} رسالة(بالثواني)\n"
+        for email, count in email_sent_counts.get(message.chat.id, {}).items():
+            status_message += f"{email}: {count} رسالة\n"
     else:
         status_message += "توزيع الرسائل على الإيميلات: لا توجد بيانات\n"
-
+    
     if email_sent_counts.get(message.chat.id):
         status_message += "\nحالة الحسابات:\n"
-        for email, count in email_sent_counts[message.chat.id].items():
+        for email, count in email_sent_counts.get(message.chat.id, {}).items():
             status_message += f"{email}: {'شغال' if count > 0 else 'لا يتم الإرسال خطأ'}\n"
     else:
         status_message += "\nحالة الحسابات: لا توجد بيانات"
@@ -326,7 +323,7 @@ def send_emails(admin_id):
     subject = admin_data[admin_id].get('subject', "")
     body = admin_data[admin_id].get('body', "")
     image = admin_data[admin_id].get('image', None)
-    sleep_time = admin_data[admin_id].get('sleep_time', 4)  # Default to 4 seconds
+    sleep_time = admin_data[admin_id].get('sleep_time', 4)  # Default sleep time of 4 seconds
     spam_email_list = admin_data[admin_id].get('spam_emails', [])
 
     while sending_active.get(admin_id, False):
@@ -362,6 +359,8 @@ def send_emails(admin_id):
 
             time.sleep(sleep_time)
 
+# بقية الكود كما هو
+
 def add_admin(message):
     try:
         new_admin_id = int(message.text)
@@ -372,7 +371,7 @@ def add_admin(message):
             bot.send_message(message.chat.id, "الأدمن موجود بالفعل.")
     except ValueError:
         bot.send_message(message.chat.id, "معرف تليجرام غير صحيح.")
-
+        
 def remove_admin(message):
     try:
         admin_id = int(message.text)
@@ -387,18 +386,17 @@ def remove_admin(message):
     except ValueError:
         bot.send_message(message.chat.id, "يرجى إدخال معرف صحيح.")
 
+
 def show_admin_ids(message):
     developer_ids = [DEVELOPER_ID1, DEVELOPER_ID2]
     admins_list = [admin for admin in admins if admin not in developer_ids]
-
     developer_list = "\n".join(str(dev) for dev in developer_ids)
     admin_list = "\n".join(str(admin) for admin in admins_list)
-
     response_message = (
         "مطورين البوت :\n" + developer_list + "\n\n" +
         "الأدمنية :\n" + admin_list
     )
     bot.send_message(message.chat.id, response_message)
-    
+
 bot.polling()
         
