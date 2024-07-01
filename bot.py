@@ -326,11 +326,11 @@ def send_emails(admin_id):
         bot.send_message(admin_id, "لا توجد بيانات كافية لإرسال الرسائل.")
         return
 
-while sending_active.get(admin_id, False):
+    while sending_active.get(admin_id, False):
         for i, (email, password) in enumerate(zip(email_list, password_list)):
             if not sending_active.get(admin_id, False):
                 break
-
+            
             try:
                 msg = MIMEMultipart()
                 msg['From'] = email
