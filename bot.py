@@ -312,7 +312,7 @@ def show_sending_status(message):
     bot.send_message(message.chat.id, status_message)
 
 def send_emails(admin_id):
-    global sent_counts, failed_emails, last_send_times
+    global sent_counts, failed_emails, last_send_times, admin_data, bot, sending_active, sent_emails, email_sent_counts, email_send_times
 
     email_list = admin_data[admin_id].get('email_list', [])
     password_list = admin_data[admin_id].get('password_list', [])
@@ -327,39 +327,41 @@ def send_emails(admin_id):
         return
 
     while sending_active.get(admin_id, False):
-        for i, (email, password) in enumerate(zip(email_list, password_list)):
+        for email, password in zip(email_list, password_list):
             if not sending_active.get(admin_id, False):
                 break
-            
-            try:
-                # إنشاء رسالة جديدة لكل إرسال
-                msg = MIMEMultipart()
-                msg['From'] = email
-                msg['To'] = ', '.join(spam_email_list)
-                msg['Subject'] = subject
-                msg.attach(MIMEText(body, 'plain'))
-                
-                if image:
-                    img = MIMEImage(image.getvalue())
-                    img.add_header('Content-ID', '<image1>')
-                    msg.attach(img)
 
-                # إعداد خادم SMTP وإرسال البريد الإلكتروني
-                with smtplib.SMTP('smtp.gmail.com', 587, timeout=60) as server:
-                    server.starttls()
-                    server.login(email, password)
-                    server.sendmail(email, spam_email_list, msg.as_string())
-                
-                sent_counts[admin_id] += 1
-                sent_emails[admin_id].append(email)
-                email_sent_counts[admin_id][email] = email_sent_counts[admin_id].get(email, 0) + 1
-                email_send_times[admin_id][email] = datetime.datetime.now()
-                last_send_times[admin_id] = datetime.datetime.now()
+            for recipient in spam_email_list:
+                try:
+                    # إنشاء رسالة جديدة في كل مرة
+                    msg = MIMEMultipart()
+                    msg['From'] = email
+                    msg['To'] = recipient
+                    msg['Subject'] = subject
+                    msg.attach(MIMEText(body, 'plain'))
 
-            except Exception as e:
-                failed_emails[admin_id].append((email, str(e)))
+                    if image:
+                        # إعادة تعيين المؤشر إلى بداية الصورة
+                        image.seek(0)
+                        img = MIMEImage(image.read())
+                        img.add_header('Content-ID', '<image1>')
+                        msg.attach(img)
 
-            time.sleep(sleep_time)
+                    # إعداد خادم SMTP وإرسال البريد الإلكتروني
+                    with smtplib.SMTP_SSL('smtp.gmail.com', 465, timeout=60) as server:
+                        server.login(email, password)
+                        server.sendmail(email, recipient, msg.as_string())
+
+                    sent_counts[admin_id] += 1
+                    sent_emails[admin_id].append(email)
+                    email_sent_counts[admin_id][email] = email_sent_counts[admin_id].get(email, 0) + 1
+                    email_send_times[admin_id][email] = datetime.datetime.now()
+                    last_send_times[admin_id] = datetime.datetime.now()
+
+                except Exception as e:
+                    failed_emails[admin_id].append((email, str(e)))
+
+                time.sleep(sleep_time)
 
 def add_admin(message):
     try:
