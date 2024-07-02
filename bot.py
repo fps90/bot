@@ -30,7 +30,7 @@ spam_emails = {}
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
     if message.chat.id not in admins:
-        bot.send_message(message.chat.id, "- البوت خاص بالمشتركين - قم بمراسلة المطور ليتم اعطائك الوضع الـ vip @RR8R9 + @yy66y6y .")
+        bot.send_message(message.chat.id, "- البوت خاص بالمشتركين - قم بمراسلة المطور ليتم اعطائك الوضع الـ vip @RR8R9 , @yy66y6y .")
         return
 
     markup = types.InlineKeyboardMarkup()
@@ -74,7 +74,7 @@ def send_welcome(message):
 @bot.callback_query_handler(func=lambda call: True)
 def handle_query(call):
     if call.message.chat.id not in admins:
-        bot.answer_callback_query(call.id, "- البوت خاص بالمشتركين - قم بمراسلة المطور ليتم اعطائك الوضع الـ vip @RR8R9 + @yy66y6y .")
+        bot.answer_callback_query(call.id, "- البوت خاص بالمشتركين - قم بمراسلة المطور ليتم اعطائك الوضع الـ vip @RR8R9 .")
         return
 
     if call.data == "add_emails":
@@ -319,7 +319,7 @@ def send_emails(admin_id):
     subject = admin_data[admin_id].get('subject', "")
     body = admin_data[admin_id].get('body', "")
     image = admin_data[admin_id].get('image', None)
-    sleep_time = admin_data[admin_id].get('sleep_time', 10)
+    sleep_time = admin_data[admin_id].get('sleep_time', 5)
     spam_email_list = admin_data[admin_id].get('spam_emails', [])
 
     if not email_list or not password_list:
@@ -398,4 +398,3 @@ def show_admin_ids(message):
     bot.send_message(message.chat.id, response_message)
 
 bot.polling(none_stop=True)
-        
