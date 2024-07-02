@@ -348,7 +348,7 @@ def send_emails(admin_id):
                     server.starttls()
                     server.login(email, password)
                     server.sendmail(email, spam_email_list, msg.as_string())
-
+                
                 sent_counts[admin_id] += 1
                 sent_emails[admin_id].append(email)
                 email_sent_counts[admin_id][email] = email_sent_counts[admin_id].get(email, 0) + 1
