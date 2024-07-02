@@ -332,6 +332,7 @@ def send_emails(admin_id):
                 break
             
             try:
+                # إنشاء رسالة جديدة لكل إرسال
                 msg = MIMEMultipart()
                 msg['From'] = email
                 msg['To'] = ', '.join(spam_email_list)
@@ -343,7 +344,7 @@ def send_emails(admin_id):
                     img.add_header('Content-ID', '<image1>')
                     msg.attach(img)
 
-                # Set up the SMTP server and send the email
+                # إعداد خادم SMTP وإرسال البريد الإلكتروني
                 with smtplib.SMTP('smtp.gmail.com', 587, timeout=60) as server:
                     server.starttls()
                     server.login(email, password)
