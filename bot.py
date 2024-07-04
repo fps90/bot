@@ -315,7 +315,6 @@ import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.image import MIMEImage
-from email.mime.application import MIMEApplication
 import datetime
 import time
 import logging
@@ -334,19 +333,21 @@ def dispatch_emails(admin_id):
     email_subject = email_data.get('subject', "")
     email_body = email_data.get('body', "")
     email_image_list = email_data.get('image_list', [])  # دعم قائمة الصور
-    attachments = email_data.get('attachments', [])  # دعم المرفقات
     delay_between_sends = email_data.get('sleep_time', 5)
     recipient_list = email_data.get('spam_emails', [])
     send_start_time = email_data.get('send_start_time', datetime.datetime.now())  # وقت البدء
 
-    # التحقق من توفر البيانات اللازمة
-    if not email_list or not password_list:
+     if not email_list or not password_list:
         bot.send_message(admin_id, "لا توجد بيانات كافية لإرسال الرسائل.")
+        if not email_list:
+            bot.send_message(admin_id, "قائمة البريد الإلكتروني فارغة.")
+        if not password_list:
+            bot.send_message(admin_id, "قائمة كلمات المرور فارغة.")
         return
 
     # انتظار الوقت المحدد لبدء الإرسال إذا لزم الأمر
     while datetime.datetime.now() < send_start_time:
-        time.sleep(10)  # انتظار دقيقة
+        time.sleep(60)  # انتظار دقيقة
 
     failed_emails_temp = []  # لتخزين الرسائل الفاشلة لمحاولة إعادة إرسالها لاحقاً
 
@@ -373,13 +374,6 @@ def dispatch_emails(admin_id):
                         img_attachment.add_header('Content-ID', f'<image{idx+1}>')
                         message.attach(img_attachment)
 
-                    # إضافة المرفقات إلى الرسالة
-                    for attachment in attachments:
-                        attachment.seek(0)
-                        attach_file = MIMEApplication(attachment.read(), name=attachment.name)
-                        attach_file.add_header('Content-Disposition', 'attachment', filename=attachment.name)
-                        message.attach(attach_file)
-
                     # إعداد اتصال SMTP وإرسال الرسالة
                     with smtplib.SMTP('smtp.gmail.com', 587, timeout=60) as smtp_server:
                         smtp_server.starttls()  # بدء التشفير
@@ -396,9 +390,11 @@ def dispatch_emails(admin_id):
                     # تسجيل الأخطاء وإضافة رسالة فاشلة لقائمة المحاولة مجددًا
                     failed_emails_temp.append((email, str(error)))
                     logging.error(f"فشل إرسال البريد إلى {recipient['email']}: {str(error)}")
-                    bot.send_message(admin_id, f"فشل إرسال البريد إلى {recipient['email']}: {str(error)}")
 
                 time.sleep(delay_between_sends)
+
+        # محاولة إعادة إرسال الرسائل الفاشلة
+        retry_failed_emails(failed_emails_temp)
 
 def retry_failed_emails(failed_emails):
     for email, error in failed_emails:
