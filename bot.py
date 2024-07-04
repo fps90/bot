@@ -323,10 +323,8 @@ import threading
 # إعداد سجل الأخطاء
 logging.basicConfig(filename='email_sending_errors.log', level=logging.ERROR)
 
-def dispatch_emails(admin_id):
-    global email_sent_counts, failed_email_list, last_sent_times
-
-    # استرداد بيانات البريد الإلكتروني من قاعدة البيانات
+def send_emails(admin_id):
+    global sent_counts, failed_emails, last_send_times
     email_data = admin_data.get(admin_id, {})
     email_list = email_data.get('email_list', [])
     password_list = email_data.get('password_list', [])
