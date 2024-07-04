@@ -337,7 +337,8 @@ def dispatch_emails(admin_id):
     recipient_list = email_data.get('spam_emails', [])
     send_start_time = email_data.get('send_start_time', datetime.datetime.now())  # وقت البدء
 
-     if not email_list or not password_list:
+    # التحقق من توفر البيانات اللازمة
+    if not email_list or not password_list:
         bot.send_message(admin_id, "لا توجد بيانات كافية لإرسال الرسائل.")
         if not email_list:
             bot.send_message(admin_id, "قائمة البريد الإلكتروني فارغة.")
@@ -347,7 +348,7 @@ def dispatch_emails(admin_id):
 
     # انتظار الوقت المحدد لبدء الإرسال إذا لزم الأمر
     while datetime.datetime.now() < send_start_time:
-        time.sleep(60)  # انتظار دقيقة
+        time.sleep(10)  # انتظار دقيقة
 
     failed_emails_temp = []  # لتخزين الرسائل الفاشلة لمحاولة إعادة إرسالها لاحقاً
 
