@@ -311,99 +311,55 @@ def show_sending_status(message):
 
     bot.send_message(message.chat.id, status_message)
 
-import smtplib
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
-from email.mime.image import MIMEImage
-import datetime
-import time
-import logging
-import threading
-
-# إعداد سجل الأخطاء
-logging.basicConfig(filename='email_sending_errors.log', level=logging.ERROR)
-
 def send_emails(admin_id):
     global sent_counts, failed_emails, last_send_times
-    email_data = admin_data.get(admin_id, {})
-    email_list = email_data.get('email_list', [])
-    password_list = email_data.get('password_list', [])
-    email_subject = email_data.get('subject', "")
-    email_body = email_data.get('body', "")
-    email_image_list = email_data.get('image_list', [])  # دعم قائمة الصور
-    delay_between_sends = email_data.get('sleep_time', 5)
-    recipient_list = email_data.get('spam_emails', [])
-    send_start_time = email_data.get('send_start_time', datetime.datetime.now())  # وقت البدء
 
-    # التحقق من توفر البيانات اللازمة
+    email_list = admin_data[admin_id].get('email_list', [])
+    password_list = admin_data[admin_id].get('password_list', [])
+    subject = admin_data[admin_id].get('subject', "")
+    body = admin_data[admin_id].get('body', "")
+    image = admin_data[admin_id].get('image', None)
+    sleep_time = admin_data[admin_id].get('sleep_time', 5)
+    spam_email_list = admin_data[admin_id].get('spam_emails', [])
+
     if not email_list or not password_list:
         bot.send_message(admin_id, "لا توجد بيانات كافية لإرسال الرسائل.")
-        if not email_list:
-            bot.send_message(admin_id, "قائمة البريد الإلكتروني فارغة.")
-        if not password_list:
-            bot.send_message(admin_id, "قائمة كلمات المرور فارغة.")
         return
 
-    # انتظار الوقت المحدد لبدء الإرسال إذا لزم الأمر
-    while datetime.datetime.now() < send_start_time:
-        time.sleep(10)  # انتظار دقيقة
-
-    failed_emails_temp = []  # لتخزين الرسائل الفاشلة لمحاولة إعادة إرسالها لاحقاً
-
-    # بدء عملية إرسال البريد
     while sending_active.get(admin_id, False):
-        for email, password in zip(email_list, password_list):
+        for i, (email, password) in enumerate(zip(email_list, password_list)):
             if not sending_active.get(admin_id, False):
                 break
+            
+            try:
+                # إنشاء رسالة جديدة لكل إرسال
+                msg = MIMEMultipart()
+                msg['From'] = email
+                msg['To'] = ', '.join(spam_email_list)
+                msg['Subject'] = subject
+                msg.attach(MIMEText(body, 'plain'))
+                
+                if image:
+                    img = MIMEImage(image.getvalue())
+                    img.add_header('Content-ID', '<image1>')
+                    msg.attach(img)
 
-            for recipient in recipient_list:
-                try:
-                    # تخصيص الرسالة
-                    personalized_body = email_body.replace("{name}", recipient['name'])
-                    message = MIMEMultipart()
-                    message['From'] = email
-                    message['To'] = recipient['email']
-                    message['Subject'] = email_subject
-                    message.attach(MIMEText(personalized_body, 'html'))  # دعم HTML
+                # إعداد خادم SMTP وإرسال البريد الإلكتروني
+                with smtplib.SMTP('smtp.gmail.com', 587, timeout=60) as server:
+                    server.starttls()
+                    server.login(email, password)
+                    server.sendmail(email, spam_email_list, msg.as_string())
+                
+                sent_counts[admin_id] += 1
+                sent_emails[admin_id].append(email)
+                email_sent_counts[admin_id][email] = email_sent_counts[admin_id].get(email, 0) + 1
+                email_send_times[admin_id][email] = datetime.datetime.now()
+                last_send_times[admin_id] = datetime.datetime.now()
 
-                    # إضافة الصور إلى الرسالة
-                    for idx, image in enumerate(email_image_list):
-                        image.seek(0)
-                        img_attachment = MIMEImage(image.read())
-                        img_attachment.add_header('Content-ID', f'<image{idx+1}>')
-                        message.attach(img_attachment)
+            except Exception as e:
+                failed_emails[admin_id].append((email, str(e)))
 
-                    # إعداد اتصال SMTP وإرسال الرسالة
-                    with smtplib.SMTP('smtp.gmail.com', 587, timeout=60) as smtp_server:
-                        smtp_server.starttls()  # بدء التشفير
-                        smtp_server.login(email, password)  # تسجيل الدخول
-                        smtp_server.sendmail(email, recipient['email'], message.as_string())  # إرسال البريد الإلكتروني
-
-                    # تحديث العدادات والتوقيت
-                    email_sent_counts[admin_id] += 1
-                    sent_emails[admin_id].append(email)
-                    email_sent_counts[admin_id][email] = email_sent_counts[admin_id].get(email, 0) + 1
-                    last_sent_times[admin_id] = datetime.datetime.now()
-
-                except Exception as error:
-                    # تسجيل الأخطاء وإضافة رسالة فاشلة لقائمة المحاولة مجددًا
-                    failed_emails_temp.append((email, str(error)))
-                    logging.error(f"فشل إرسال البريد إلى {recipient['email']}: {str(error)}")
-
-                time.sleep(delay_between_sends)
-
-        # محاولة إعادة إرسال الرسائل الفاشلة
-        retry_failed_emails(failed_emails_temp)
-
-def retry_failed_emails(failed_emails):
-    for email, error in failed_emails:
-        # منطق لإعادة محاولة إرسال الرسائل الفاشلة
-        pass
-
-# وظيفة لتحديد وقت بدء الإرسال في جدولة
-def schedule_email_dispatch(admin_id, send_start_time):
-    email_thread = threading.Thread(target=dispatch_emails, args=(admin_id,))
-    email_thread.start()
+            time.sleep(sleep_time)
 
 def add_admin(message):
     try:
@@ -443,4 +399,3 @@ def show_admin_ids(message):
     bot.send_message(message.chat.id, response_message)
 
 bot.polling(none_stop=True)
-        
