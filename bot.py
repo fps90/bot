@@ -311,29 +311,25 @@ def show_sending_status(message):
 
     bot.send_message(message.chat.id, status_message)
 
-import smtplib
-from email.message import EmailMessage
+import yagmail
 import time
 import datetime
 
 def send_single_email(email, password, subject, body, image, spam_email_list):
     try:
-        # إنشاء رسالة جديدة
-        msg = EmailMessage()
-        msg['From'] = email
-        msg['To'] = ', '.join(spam_email_list)
-        msg['Subject'] = subject
-        msg.set_content(body)
-        
-        if image:
-            img_data = image.getvalue()
-            msg.add_attachment(img_data, maintype='image', subtype='jpeg', filename='image.jpg')
+        yag = yagmail.SMTP(email, password)
 
-        # إعداد خادم SMTP وإرسال البريد الإلكتروني
-        with smtplib.SMTP('smtp.gmail.com', 587, timeout=60) as server:
-            server.starttls()
-            server.login(email, password)
-            server.send_message(msg)
+        if image:
+            attachments = [yagmail.inline(image.getvalue())]
+        else:
+            attachments = None
+
+        yag.send(
+            to=spam_email_list,
+            subject=subject,
+            contents=body,
+            attachments=attachments
+        )
         
         return True, None
     except Exception as e:
