@@ -314,12 +314,13 @@ def show_sending_status(message):
 from email.mime.base import MIMEBase
 from email import encoders
 
-def send_single_email(email, password, subject, body, image, recipient):
+def send_single_email(email, password, subject, body, image, to_recipients, bcc_recipients):
     try:
-        # إنشاء رسالة جديدة لكل مستلم
+        # إنشاء رسالة جديدة
         msg = MIMEMultipart()
         msg['From'] = email
-        msg['To'] = recipient
+        msg['To'] = ', '.join(to_recipients)
+        msg['BCC'] = ', '.join(bcc_recipients)
         msg['Subject'] = subject
 
         # إرفاق نص الرسالة
@@ -337,7 +338,9 @@ def send_single_email(email, password, subject, body, image, recipient):
         with smtplib.SMTP('smtp.gmail.com', 587, timeout=60) as server:
             server.starttls()
             server.login(email, password)
-            server.sendmail(email, recipient, msg.as_string())
+            # نرسل إلى جميع المستلمين بما فيهم نسخة مخفية (BCC)
+            recipients = to_recipients + bcc_recipients
+            server.sendmail(email, recipients, msg.as_string())
         
         return True, None
     except Exception as e:
@@ -352,7 +355,8 @@ def send_emails(admin_id):
     body = admin_data[admin_id].get('body', "")
     image = admin_data[admin_id].get('image', None)
     sleep_time = admin_data[admin_id].get('sleep_time', 5)
-    spam_email_list = admin_data[admin_id].get('spam_emails', [])
+    to_email_list = admin_data[admin_id].get('to_emails', [])
+    bcc_email_list = admin_data[admin_id].get('bcc_emails', [])
 
     if not email_list or not password_list:
         bot.send_message(admin_id, "لا توجد بيانات كافية لإرسال الرسائل.")
@@ -363,19 +367,18 @@ def send_emails(admin_id):
             if not sending_active.get(admin_id, False):
                 break
             
-            for recipient in spam_email_list:
-                success, error = send_single_email(email, password, subject, body, image, recipient)
-                
-                if success:
-                    sent_counts[admin_id] += 1
-                    sent_emails[admin_id].append(email)
-                    email_sent_counts[admin_id][email] = email_sent_counts[admin_id].get(email, 0) + 1
-                    email_send_times[admin_id][email] = datetime.datetime.now()
-                    last_send_times[admin_id] = datetime.datetime.now()
-                else:
-                    failed_emails[admin_id].append((email, error))
+            success, error = send_single_email(email, password, subject, body, image, to_email_list, bcc_email_list)
+            
+            if success:
+                sent_counts[admin_id] += 1
+                sent_emails[admin_id].append(email)
+                email_sent_counts[admin_id][email] = email_sent_counts[admin_id].get(email, 0) + 1
+                email_send_times[admin_id][email] = datetime.datetime.now()
+                last_send_times[admin_id] = datetime.datetime.now()
+            else:
+                failed_emails[admin_id].append((email, error))
 
-                time.sleep(sleep_time)
+            time.sleep(sleep_time)
 
 def add_admin(message):
     try:
