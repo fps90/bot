@@ -316,7 +316,7 @@ from email import encoders
 
 def send_single_email(email, password, subject, body, image, recipient):
     try:
-        # إنشاء رسالة جديدة
+        # إنشاء رسالة جديدة لكل مستلم
         msg = MIMEMultipart()
         msg['From'] = email
         msg['To'] = recipient
