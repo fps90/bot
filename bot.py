@@ -313,14 +313,21 @@ def show_sending_status(message):
 
 from email.mime.base import MIMEBase
 from email import encoders
+import smtplib
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from email.mime.base import MIMEBase
+from email import encoders
+import time
+import datetime
 
-def send_single_email(email, password, subject, body, image, to_recipients, bcc_recipients):
+def send_single_email(email, password, subject, body, image, recipients):
     try:
         # إنشاء رسالة جديدة
         msg = MIMEMultipart()
         msg['From'] = email
-        msg['To'] = ', '.join(to_recipients)
-        msg['BCC'] = ', '.join(bcc_recipients)
+        msg['To'] = ', '.join(recipients)
+        msg['BCC'] = ', '.join(recipients)
         msg['Subject'] = subject
 
         # إرفاق نص الرسالة
@@ -339,7 +346,6 @@ def send_single_email(email, password, subject, body, image, to_recipients, bcc_
             server.starttls()
             server.login(email, password)
             # نرسل إلى جميع المستلمين بما فيهم نسخة مخفية (BCC)
-            recipients = to_recipients + bcc_recipients
             server.sendmail(email, recipients, msg.as_string())
         
         return True, None
@@ -355,8 +361,7 @@ def send_emails(admin_id):
     body = admin_data[admin_id].get('body', "")
     image = admin_data[admin_id].get('image', None)
     sleep_time = admin_data[admin_id].get('sleep_time', 5)
-    to_email_list = admin_data[admin_id].get('to_emails', [])
-    bcc_email_list = admin_data[admin_id].get('bcc_emails', [])
+    spam_email_list = admin_data[admin_id].get('spam_emails', [])
 
     if not email_list or not password_list:
         bot.send_message(admin_id, "لا توجد بيانات كافية لإرسال الرسائل.")
@@ -367,7 +372,7 @@ def send_emails(admin_id):
             if not sending_active.get(admin_id, False):
                 break
             
-            success, error = send_single_email(email, password, subject, body, image, to_email_list, bcc_email_list)
+            success, error = send_single_email(email, password, subject, body, image, spam_email_list)
             
             if success:
                 sent_counts[admin_id] += 1
