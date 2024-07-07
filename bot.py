@@ -311,15 +311,8 @@ def show_sending_status(message):
 
     bot.send_message(message.chat.id, status_message)
 
-from email.mime.base import MIMEBase
+import smtplib, ssl
 from email import encoders
-import smtplib
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
-from email.mime.base import MIMEBase
-from email import encoders
-import time
-import datetime
 
 def send_single_email(email, password, subject, body, image, recipients):
     try:
@@ -342,8 +335,10 @@ def send_single_email(email, password, subject, body, image, recipients):
             msg.attach(part)
 
         # إعداد خادم SMTP وإرسال البريد الإلكتروني
-        with smtplib.SMTP('smtp.gmail.com', 587, timeout=60) as server:
-            server.starttls()
+        port = 465
+        sslcontext = ssl.create_default_context()
+        
+        with smtplib.SMTP_SSL("smtp.gmail.com", port, context=sslcontext) as server:
             server.login(email, password)
             # نرسل إلى جميع المستلمين بما فيهم نسخة مخفية (BCC)
             server.sendmail(email, recipients, msg.as_string())
