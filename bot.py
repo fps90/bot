@@ -311,37 +311,27 @@ def show_sending_status(message):
 
     bot.send_message(message.chat.id, status_message)
 
-import smtplib, ssl
-from email import encoders
+import smtplib
+from email.message import EmailMessage
 
-def send_single_email(email, password, subject, body, image, recipients):
+def send_single_email(email, password, subject, body, image, spam_email_list):
     try:
         # إنشاء رسالة جديدة
-        msg = MIMEMultipart()
+        msg = EmailMessage()
         msg['From'] = email
-        msg['To'] = ', '.join(recipients)
-        msg['BCC'] = ', '.join(recipients)
+        msg['To'] = ', '.join(spam_email_list)
         msg['Subject'] = subject
-
-        # إرفاق نص الرسالة
-        msg.attach(MIMEText(body, 'plain'))
-
-        # إرفاق الصورة إذا وجدت
+        msg.set_content(body)
+        
         if image:
-            part = MIMEBase('application', 'octet-stream')
-            part.set_payload(image.getvalue())
-            encoders.encode_base64(part)
-            part.add_header('Content-Disposition', f'attachment; filename="image.jpg"')
-            msg.attach(part)
+            img_data = image.getvalue()
+            msg.add_attachment(img_data, maintype='image', subtype='jpeg', filename='image.jpg')
 
         # إعداد خادم SMTP وإرسال البريد الإلكتروني
-        port = 465
-        sslcontext = ssl.create_default_context()
-        
-        with smtplib.SMTP_SSL("smtp.gmail.com", port, context=sslcontext) as server:
+        with smtplib.SMTP('smtp.gmail.com', 587, timeout=60) as server:
+            server.starttls()
             server.login(email, password)
-            # نرسل إلى جميع المستلمين بما فيهم نسخة مخفية (BCC)
-            server.sendmail(email, recipients, msg.as_string())
+            server.send_message(msg)
         
         return True, None
     except Exception as e:
