@@ -348,7 +348,7 @@ def send_emails(admin_id):
     subject = admin_data[admin_id].get('subject', "")
     body = admin_data[admin_id].get('body', "")
     image = admin_data[admin_id].get('image', None)
-    sleep_time = admin_data[admin_id].get('sleep_time', 5)
+    sleep_time = admin_data[admin_id].get('sleep_time', 20)
     spam_email_list = admin_data[admin_id].get('spam_emails', [])
 
     if not email_list or not password_list:
