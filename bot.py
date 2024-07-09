@@ -310,9 +310,11 @@ def show_sending_status(message):
         status_message += "\nحالة الحسابات: لا توجد بيانات"
 
     bot.send_message(message.chat.id, status_message)
-
 import smtplib
 from email.message import EmailMessage
+from email.utils import make_msgid, formatdate
+import time
+import datetime
 
 def send_single_email(email, password, subject, body, image, spam_email_list):
     try:
@@ -321,6 +323,8 @@ def send_single_email(email, password, subject, body, image, spam_email_list):
         msg['From'] = email
         msg['To'] = ', '.join(spam_email_list)
         msg['Subject'] = subject
+        msg['Message-ID'] = make_msgid()
+        msg['Date'] = formatdate(localtime=True)
         msg.set_content(body)
         
         if image:
@@ -328,8 +332,7 @@ def send_single_email(email, password, subject, body, image, spam_email_list):
             msg.add_attachment(img_data, maintype='image', subtype='jpeg', filename='image.jpg')
 
         # إعداد خادم SMTP وإرسال البريد الإلكتروني
-        with smtplib.SMTP('smtp.gmail.com', 587, timeout=60) as server:
-            server.starttls()
+        with smtplib.SMTP_SSL('smtp.gmail.com', 465, timeout=60) as server:
             server.login(email, password)
             server.send_message(msg)
         
