@@ -431,4 +431,6 @@ def show_admin_ids(message):
     )
     bot.send_message(message.chat.id, response_message)
 
-bot = MockBot()
+
+bot.polling(none_stop=True)
+
