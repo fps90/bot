@@ -323,8 +323,11 @@ def send_single_email(email, password, subject, body, image, spam_email_list):
         msg['From'] = email
         msg['To'] = ', '.join(spam_email_list)
         msg['Subject'] = subject
-        msg.set_content(body)
         
+        # تعيين المحتوى مع تحديد الترميز
+        msg.set_content(body, charset='utf-8')
+
+        # إرفاق الصورة إذا وجدت
         if image:
             img_data = image.getvalue()
             msg.add_attachment(img_data, maintype='image', subtype='jpeg', filename='image.jpg')
