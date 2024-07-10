@@ -310,9 +310,9 @@ def show_sending_status(message):
         status_message += "\nحالة الحسابات: لا توجد بيانات"
 
     bot.send_message(message.chat.id, status_message)
+    
 import smtplib
 from email.message import EmailMessage
-from email.utils import make_msgid, formatdate
 import time
 import datetime
 
@@ -323,8 +323,6 @@ def send_single_email(email, password, subject, body, image, spam_email_list):
         msg['From'] = email
         msg['To'] = ', '.join(spam_email_list)
         msg['Subject'] = subject
-        msg['Message-ID'] = make_msgid()
-        msg['Date'] = formatdate(localtime=True)
         msg.set_content(body)
         
         if image:
@@ -343,35 +341,58 @@ def send_single_email(email, password, subject, body, image, spam_email_list):
 def send_emails(admin_id):
     global sent_counts, failed_emails, last_send_times
 
-    email_list = admin_data[admin_id].get('email_list', [])
-    password_list = admin_data[admin_id].get('password_list', [])
-    subject = admin_data[admin_id].get('subject', "")
-    body = admin_data[admin_id].get('body', "")
-    image = admin_data[admin_id].get('image', None)
-    sleep_time = admin_data[admin_id].get('sleep_time', 20)
-    spam_email_list = admin_data[admin_id].get('spam_emails', [])
+    data = admin_data.get(admin_id, {})
+    email_list = data.get('email_list', [])
+    password_list = data.get('password_list', [])
+    subject = data.get('subject', "")
+    body = data.get('body', "")
+    image = data.get('image', None)
+    sleep_time = data.get('sleep_time', 20)
+    spam_email_list = data.get('spam_emails', [])
 
     if not email_list or not password_list:
         bot.send_message(admin_id, "لا توجد بيانات كافية لإرسال الرسائل.")
         return
 
     while sending_active.get(admin_id, False):
-        for i, (email, password) in enumerate(zip(email_list, password_list)):
+        for email, password in zip(email_list, password_list):
             if not sending_active.get(admin_id, False):
                 break
-            
+
             success, error = send_single_email(email, password, subject, body, image, spam_email_list)
             
             if success:
-                sent_counts[admin_id] += 1
-                sent_emails[admin_id].append(email)
-                email_sent_counts[admin_id][email] = email_sent_counts[admin_id].get(email, 0) + 1
-                email_send_times[admin_id][email] = datetime.datetime.now()
+                sent_counts[admin_id] = sent_counts.get(admin_id, 0) + 1
                 last_send_times[admin_id] = datetime.datetime.now()
             else:
                 failed_emails[admin_id].append((email, error))
 
             time.sleep(sleep_time)
+
+# البيانات العالمية المطلوبة
+admin_data = {}
+sent_counts = {}
+failed_emails = {}
+last_send_times = {}
+sending_active = {}
+
+# مثال لاستخدام البوت تليجرام لإرسال الرسائل
+def start_sending(admin_id, data):
+    admin_data[admin_id] = data
+    sent_counts[admin_id] = 0
+    failed_emails[admin_id] = []
+    sending_active[admin_id] = True
+    send_emails(admin_id)
+
+def stop_sending(admin_id):
+    sending_active[admin_id] = False
+
+# افترض وجود كائن bot مع دالة send_message
+class MockBot:
+    def send_message(self, admin_id, message):
+        print(f"Message to {admin_id}: {message}")
+
+bot = MockBot()
 
 def add_admin(message):
     try:
