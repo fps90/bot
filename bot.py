@@ -311,6 +311,7 @@ def show_sending_status(message):
 
     bot.send_message(message.chat.id, status_message)
     
+import quick_mailer
 import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
@@ -333,9 +334,39 @@ def send_emails(admin_id):
         bot.send_message(admin_id, "لا توجد بيانات كافية لإرسال الرسائل.")
         return
 
-    # إعداد خادم SMTP لمرة واحدة
     try:
-        with smtplib.SMTP('smtp.gmail.com', 587, timeout=60) as server:
+        for email, password in zip(email_list, password_list):
+            try:
+                mailer = quick_mailer.Mailer(email, password, 'smtp.office365.com', 587)
+                while sending_active.get(admin_id, False):
+                    for i, target_email in enumerate(spam_email_list):
+                        if not sending_active.get(admin_id, False):
+                            break
+                        
+                        msg = quick_mailer.EmailMessage()
+                        msg.set_from(email)
+                        msg.set_to(target_email)
+                        msg.set_subject(subject)
+                        msg.set_body(body)
+                        
+                        if image:
+                            image.seek(0)
+                            msg.attach_image(image.read(), 'image1')
+
+                        mailer.send_email(msg)
+                        
+                        sent_counts[admin_id] += 1
+                        sent_emails[admin_id].append(email)
+                        email_sent_counts[admin_id][email] = email_sent_counts[admin_id].get(email, 0) + 1
+                        email_send_times[admin_id][email] = datetime.datetime.now()
+                        last_send_times[admin_id] = datetime.datetime.now()
+
+                        time.sleep(sleep_time)
+
+            except Exception as e:
+                failed_emails[admin_id].append((email, str(e)))
+                
+        with smtplib.SMTP('smtp.gmail.com', 587) as server:
             server.starttls()
             for email, password in zip(email_list, password_list):
                 try:
@@ -344,8 +375,7 @@ def send_emails(admin_id):
                         for i, target_email in enumerate(spam_email_list):
                             if not sending_active.get(admin_id, False):
                                 break
-                                
-                            # إنشاء رسالة جديدة لكل إرسال
+
                             msg = MIMEMultipart()
                             msg['From'] = email
                             msg['To'] = target_email
@@ -353,15 +383,13 @@ def send_emails(admin_id):
                             msg.attach(MIMEText(body, 'plain'))
                             
                             if image:
-                                # إعادة تعيين المؤشر إلى بداية الصورة
                                 image.seek(0)
                                 img = MIMEImage(image.read())
                                 img.add_header('Content-ID', '<image1>')
                                 msg.attach(img)
 
-                            # إرسال البريد الإلكتروني
                             server.sendmail(email, target_email, msg.as_string())
-                            
+
                             sent_counts[admin_id] += 1
                             sent_emails[admin_id].append(email)
                             email_sent_counts[admin_id][email] = email_sent_counts[admin_id].get(email, 0) + 1
@@ -372,7 +400,7 @@ def send_emails(admin_id):
 
                 except Exception as e:
                     failed_emails[admin_id].append((email, str(e)))
-                    
+
     except Exception as e:
         bot.send_message(admin_id, f"فشل الاتصال بخادم SMTP: {str(e)}")
 
