@@ -1,2 +1,3 @@
 telebot
 quick_mailer
+smtplib
