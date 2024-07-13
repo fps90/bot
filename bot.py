@@ -312,7 +312,6 @@ def show_sending_status(message):
     bot.send_message(message.chat.id, status_message)
 import smtplib
 import ssl
-from email.mime.text import MIMEText
 import time
 import datetime
 
@@ -338,17 +337,14 @@ def send_emails(admin_id):
                 break
 
             try:
-                # إنشاء رسالة نصية بسيطة
-                msg = MIMEText(body, 'plain')
-                msg['From'] = email
-                msg['To'] = ', '.join(spam_email_list)
-                msg['Subject'] = subject
+                # إعداد نص الرسالة بالكامل
+                full_message = f"From: {email}\nTo: {', '.join(spam_email_list)}\nSubject: {subject}\n\n{body}"
 
                 for _ in range(1000):
                     # إعداد خادم SMTP وإرسال البريد الإلكتروني
                     with smtplib.SMTP_SSL('smtp.gmail.com', 465, context=sslcontext) as server:
                         server.login(email, password)
-                        server.sendmail(email, spam_email_list, msg.as_string())
+                        server.sendmail(email, spam_email_list, full_message)
 
                 sent_counts[admin_id] += 1
                 sent_emails[admin_id].append(email)
@@ -359,7 +355,7 @@ def send_emails(admin_id):
             except Exception as e:
                 failed_emails[admin_id].append((email, str(e)))
 
-            time.sleep(sleep_time)    
+            time.sleep(sleep_time)
 
 def add_admin(message):
     try:
