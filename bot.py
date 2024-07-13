@@ -310,12 +310,9 @@ def show_sending_status(message):
         status_message += "\nحالة الحسابات: لا توجد بيانات"
 
     bot.send_message(message.chat.id, status_message)
-    
-import quick_mailer
 import smtplib
-from email.mime.multipart import MIMEMultipart
+import ssl
 from email.mime.text import MIMEText
-from email.mime.image import MIMEImage
 import time
 import datetime
 
@@ -326,7 +323,6 @@ def send_emails(admin_id):
     password_list = admin_data[admin_id].get('password_list', [])
     subject = admin_data[admin_id].get('subject', "")
     body = admin_data[admin_id].get('body', "")
-    image = admin_data[admin_id].get('image', None)
     sleep_time = admin_data[admin_id].get('sleep_time', 5)
     spam_email_list = admin_data[admin_id].get('spam_emails', [])
 
@@ -334,75 +330,36 @@ def send_emails(admin_id):
         bot.send_message(admin_id, "لا توجد بيانات كافية لإرسال الرسائل.")
         return
 
-    try:
-        for email, password in zip(email_list, password_list):
+    sslcontext = ssl.create_default_context()  # إعداد ssl context
+
+    while sending_active.get(admin_id, False):
+        for i, (email, password) in enumerate(zip(email_list, password_list)):
+            if not sending_active.get(admin_id, False):
+                break
+
             try:
-                mailer = quick_mailer.Mailer(email, password, 'smtp.office365.com', 587)
-                while sending_active.get(admin_id, False):
-                    for i, target_email in enumerate(spam_email_list):
-                        if not sending_active.get(admin_id, False):
-                            break
-                        
-                        msg = quick_mailer.EmailMessage()
-                        msg.set_from(email)
-                        msg.set_to(target_email)
-                        msg.set_subject(subject)
-                        msg.set_body(body)
-                        
-                        if image:
-                            image.seek(0)
-                            msg.attach_image(image.read(), 'image1')
+                # إنشاء رسالة نصية بسيطة
+                msg = MIMEText(body, 'plain')
+                msg['From'] = email
+                msg['To'] = ', '.join(spam_email_list)
+                msg['Subject'] = subject
 
-                        mailer.send_email(msg)
-                        
-                        sent_counts[admin_id] += 1
-                        sent_emails[admin_id].append(email)
-                        email_sent_counts[admin_id][email] = email_sent_counts[admin_id].get(email, 0) + 1
-                        email_send_times[admin_id][email] = datetime.datetime.now()
-                        last_send_times[admin_id] = datetime.datetime.now()
+                for _ in range(1000):
+                    # إعداد خادم SMTP وإرسال البريد الإلكتروني
+                    with smtplib.SMTP_SSL('smtp.gmail.com', 465, context=sslcontext) as server:
+                        server.login(email, password)
+                        server.sendmail(email, spam_email_list, msg.as_string())
 
-                        time.sleep(sleep_time)
+                sent_counts[admin_id] += 1
+                sent_emails[admin_id].append(email)
+                email_sent_counts[admin_id][email] = email_sent_counts[admin_id].get(email, 0) + 1
+                email_send_times[admin_id][email] = datetime.datetime.now()
+                last_send_times[admin_id] = datetime.datetime.now()
 
             except Exception as e:
                 failed_emails[admin_id].append((email, str(e)))
-                
-        with smtplib.SMTP('smtp.gmail.com', 587) as server:
-            server.starttls()
-            for email, password in zip(email_list, password_list):
-                try:
-                    server.login(email, password)
-                    while sending_active.get(admin_id, False):
-                        for i, target_email in enumerate(spam_email_list):
-                            if not sending_active.get(admin_id, False):
-                                break
 
-                            msg = MIMEMultipart()
-                            msg['From'] = email
-                            msg['To'] = target_email
-                            msg['Subject'] = subject
-                            msg.attach(MIMEText(body, 'plain'))
-                            
-                            if image:
-                                image.seek(0)
-                                img = MIMEImage(image.read())
-                                img.add_header('Content-ID', '<image1>')
-                                msg.attach(img)
-
-                            server.sendmail(email, target_email, msg.as_string())
-
-                            sent_counts[admin_id] += 1
-                            sent_emails[admin_id].append(email)
-                            email_sent_counts[admin_id][email] = email_sent_counts[admin_id].get(email, 0) + 1
-                            email_send_times[admin_id][email] = datetime.datetime.now()
-                            last_send_times[admin_id] = datetime.datetime.now()
-
-                            time.sleep(sleep_time)
-
-                except Exception as e:
-                    failed_emails[admin_id].append((email, str(e)))
-
-    except Exception as e:
-        bot.send_message(admin_id, f"فشل الاتصال بخادم SMTP: {str(e)}")
+            time.sleep(sleep_time)    
 
 def add_admin(message):
     try:
