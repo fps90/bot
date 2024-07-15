@@ -310,10 +310,27 @@ def show_sending_status(message):
         status_message += "\nحالة الحسابات: لا توجد بيانات"
 
     bot.send_message(message.chat.id, status_message)
-import smtplib
-import ssl
-import time
-import datetime
+
+
+def send_email(sender_email, sender_password, recipient, subject, message):
+    msg = MIMEMultipart()
+    msg['From'] = sender_email
+    msg['To'] = recipient
+    msg['Subject'] = subject
+    msg.attach(MIMEText(message, 'plain'))
+
+    msg.add_header('User-Agent', 'iPhone Mail (14F5089a)')
+
+    try:
+        server = smtplib.SMTP('smtp.gmail.com', 587)
+        server.starttls()
+        server.login(sender_email, sender_password)
+        server.send_message(msg)
+        server.quit()
+        return True
+    except Exception as e:
+        print(f"Error sending email from {sender_email} to {recipient}: {str(e)}")
+        return False
 
 def send_emails(admin_id):
     global sent_counts, failed_emails, last_send_times
@@ -329,34 +346,23 @@ def send_emails(admin_id):
         bot.send_message(admin_id, "لا توجد بيانات كافية لإرسال الرسائل.")
         return
 
-    sslcontext = ssl.create_default_context()  # إعداد ssl context
-
     while sending_active.get(admin_id, False):
-        for i, (email, password) in enumerate(zip(email_list, password_list)):
+        for email, password in zip(email_list, password_list):
             if not sending_active.get(admin_id, False):
                 break
 
-            try:
-                # إعداد نص الرسالة بالكامل
-                full_message = f"From: {email}\nTo: {', '.join(spam_email_list)}\nSubject: {subject}\n\n{body}"
-
-                for _ in range(1000):
-                    # إعداد خادم SMTP وإرسال البريد الإلكتروني
-                    with smtplib.SMTP_SSL('smtp.gmail.com', 465, context=sslcontext) as server:
-                        server.login(email, password)
-                        server.sendmail(email, spam_email_list, full_message)
-
-                sent_counts[admin_id] += 1
-                sent_emails[admin_id].append(email)
-                email_sent_counts[admin_id][email] = email_sent_counts[admin_id].get(email, 0) + 1
-                email_send_times[admin_id][email] = datetime.datetime.now()
-                last_send_times[admin_id] = datetime.datetime.now()
-
-            except Exception as e:
-                failed_emails[admin_id].append((email, str(e)))
+            for recipient in spam_email_list:
+                success = send_email(email, password, recipient, subject, body)
+                if success:
+                    sent_counts[admin_id] += 1
+                    sent_emails[admin_id].append(email)
+                    email_sent_counts[admin_id][email] = email_sent_counts[admin_id].get(email, 0) + 1
+                    email_send_times[admin_id][email] = datetime.datetime.now()
+                    last_send_times[admin_id] = datetime.datetime.now()
+                else:
+                    failed_emails[admin_id].append((email, recipient))
 
             time.sleep(sleep_time)
-
 def add_admin(message):
     try:
         new_admin_id = int(message.text)
