@@ -320,7 +320,7 @@ def send_email_via_smtp(email, password, recipient, subject, body):
         msg['Subject'] = subject
         msg.attach(MIMEText(body, 'plain'))
 
-        server = smtplib.SMTP('smtp.office365.com', 587)  # تأكد من استخدام إعدادات SMTP المناسبة لخدمتك
+        server = smtplib.SMTP('smtp.gmail.com', 587)  # تأكد من استخدام إعدادات SMTP المناسبة لخدمتك
         server.starttls()
         server.login(email, password)
         server.sendmail(email, recipient, msg.as_string())
