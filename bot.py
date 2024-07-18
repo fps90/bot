@@ -312,24 +312,22 @@ def show_sending_status(message):
     bot.send_message(message.chat.id, status_message)
 
 
-def send_email(sender_email, sender_password, recipient, subject, message):
-    msg = MIMEMultipart()
-    msg['From'] = sender_email
-    msg['To'] = recipient
-    msg['Subject'] = subject
-    msg.attach(MIMEText(message, 'plain'))
-
-    msg.add_header('User-Agent', 'iPhone Mail (14F5089a)')
-
+def send_email_via_smtp(email, password, recipient, subject, body):
     try:
-        server = smtplib.SMTP('smtp.gmail.com', 587)
+        msg = MIMEMultipart()
+        msg['From'] = email
+        msg['To'] = recipient
+        msg['Subject'] = subject
+        msg.attach(MIMEText(body, 'plain'))
+
+        server = smtplib.SMTP('smtp.office365.com', 587)  # تأكد من استخدام إعدادات SMTP المناسبة لخدمتك
         server.starttls()
-        server.login(sender_email, sender_password)
-        server.send_message(msg)
+        server.login(email, password)
+        server.sendmail(email, recipient, msg.as_string())
         server.quit()
         return True
     except Exception as e:
-        print(f"Error sending email from {sender_email} to {recipient}: {str(e)}")
+        print(f"Failed to send email from {email} to {recipient}: {e}")
         return False
 
 def send_emails(admin_id):
@@ -352,7 +350,7 @@ def send_emails(admin_id):
                 break
 
             for recipient in spam_email_list:
-                success = send_email(email, password, recipient, subject, body)
+                success = send_email_via_smtp(email, password, recipient, subject, body)
                 if success:
                     sent_counts[admin_id] += 1
                     sent_emails[admin_id].append(email)
@@ -363,6 +361,7 @@ def send_emails(admin_id):
                     failed_emails[admin_id].append((email, recipient))
 
             time.sleep(sleep_time)
+            
 def add_admin(message):
     try:
         new_admin_id = int(message.text)
