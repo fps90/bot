@@ -305,12 +305,10 @@ def show_sending_status(message):
     if email_sent_counts.get(message.chat.id):
         status_message += "\nحالة الحسابات:\n"
         for email, count in email_sent_counts.get(message.chat.id, {}).items():
-            status_message += f"{email}: {'شغال' if count > 0 else 'لا يتم الإرسال خطأ'}\n"
+            status_message += f"{email}:{'شغال' if count > 0 else 'لا يتم الإرسال خطأ'}\n"
     else:
         status_message += "\nحالة الحسابات: لا توجد بيانات"
-
     bot.send_message(message.chat.id, status_message)
-
 
 def send_email_via_smtp(email, password, recipient, subject, body):
     try:
