@@ -298,7 +298,7 @@ def show_sending_status(message):
     if email_sent_counts.get(message.chat.id):
         status_message += "توزيع الرسائل على الإيميلات:\n"
         for email, count in email_sent_counts.get(message.chat.id, {}).items():
-            status_message += f"{email}: {count} رسالة\n"
+            status_message += f"{email}: {count} رسالة "
     else:
         status_message += "توزيع الرسائل على الإيميلات: لا توجد بيانات\n"
 
