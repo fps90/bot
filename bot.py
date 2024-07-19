@@ -30,7 +30,7 @@ spam_emails = {}
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
     if message.chat.id not in admins:
-        bot.send_message(message.chat.id, "- البوت خاص بالمشتركين - قم بمراسلة المطور ليتم اعطائك الوضع الـ vip @RR8R9 , @yy66y6y .")
+        bot.send_message(message.chat.id, "- البوت خاص بالمشتركين - قم بمراسلة المطور ليتم اعطائك الوضع الـ vip @RR8R9 .")
         return
 
     markup = types.InlineKeyboardMarkup()
@@ -298,68 +298,52 @@ def show_sending_status(message):
     if email_sent_counts.get(message.chat.id):
         status_message += "توزيع الرسائل على الإيميلات:\n"
         for email, count in email_sent_counts.get(message.chat.id, {}).items():
-            status_message += f"{email}: {count} رسالة "
+            status_message += f"{email}: {count} رسالة\n"
     else:
         status_message += "توزيع الرسائل على الإيميلات: لا توجد بيانات\n"
 
     if email_sent_counts.get(message.chat.id):
         status_message += "\nحالة الحسابات:\n"
         for email, count in email_sent_counts.get(message.chat.id, {}).items():
-            status_message += f"{email}:{'شغال' if count > 0 else 'لا يتم الإرسال خطأ'}\n"
+            status_message += f"{email}: {'شغال' if count > 0 else 'لا يتم الإرسال خطأ'}\n"
     else:
         status_message += "\nحالة الحسابات: لا توجد بيانات"
+
     bot.send_message(message.chat.id, status_message)
 
-def send_email_via_smtp(email, password, recipient, subject, body):
-    try:
-        msg = MIMEMultipart()
-        msg['From'] = email
-        msg['To'] = recipient
-        msg['Subject'] = subject
-        msg.attach(MIMEText(body, 'plain'))
+def send_final_emails(message, receiver_email, subject, content, email_count, email_interval, email_idx):
+    user_data = admin_data.get(message.chat.id, {})
+    email_list = user_data.get('email_list', [])
+    password_list = user_data.get('password_list', [])
 
-        server = smtplib.SMTP('smtp.gmail.com', 587)  # تأكد من استخدام إعدادات SMTP المناسبة لخدمتك
+    if email_idx >= len(email_list):
+        bot.send_message(message.chat.id, "خطأ في الوصول إلى الإيميل. تأكد من صحة البيانات المدخلة.")
+        return
+    
+    email = email_list[email_idx]
+    password = password_list[email_idx]
+    
+    try:
+        server = smtplib.SMTP('smtp.gmail.com', 587)
         server.starttls()
         server.login(email, password)
-        server.sendmail(email, recipient, msg.as_string())
+        progress_message = bot.send_message(message.chat.id, f"جارٍ إرسال الرسائل...\nالرسائل المرسلة حالياً: 0")
+        
+        for i in range(email_count):
+            msg = MIMEMultipart()
+            msg['From'] = email
+            msg['To'] = receiver_email
+            msg['Subject'] = subject
+            msg.attach(MIMEText(content, 'plain'))
+            server.send_message(msg)
+            if i < email_count - 1:
+                time.sleep(email_interval)
+                bot.edit_message_text(chat_id=message.chat.id, message_id=progress_message.message_id, text=f"جارٍ إرسال الرسائل...\nالرسائل المرسلة حالياً: {i + 1}")
+        
         server.quit()
-        return True
+        bot.send_message(message.chat.id, "انتهى إرسال الرسائل.")
     except Exception as e:
-        print(f"Failed to send email from {email} to {recipient}: {e}")
-        return False
-
-def send_emails(admin_id):
-    global sent_counts, failed_emails, last_send_times
-
-    email_list = admin_data[admin_id].get('email_list', [])
-    password_list = admin_data[admin_id].get('password_list', [])
-    subject = admin_data[admin_id].get('subject', "")
-    body = admin_data[admin_id].get('body', "")
-    sleep_time = admin_data[admin_id].get('sleep_time', 5)
-    spam_email_list = admin_data[admin_id].get('spam_emails', [])
-
-    if not email_list or not password_list:
-        bot.send_message(admin_id, "لا توجد بيانات كافية لإرسال الرسائل.")
-        return
-
-    while sending_active.get(admin_id, False):
-        for email, password in zip(email_list, password_list):
-            if not sending_active.get(admin_id, False):
-                break
-
-            for recipient in spam_email_list:
-                success = send_email_via_smtp(email, password, recipient, subject, body)
-                if success:
-                    sent_counts[admin_id] += 1
-                    sent_emails[admin_id].append(email)
-                    email_sent_counts[admin_id][email] = email_sent_counts[admin_id].get(email, 0) + 1
-                    email_send_times[admin_id][email] = datetime.datetime.now()
-                    last_send_times[admin_id] = datetime.datetime.now()
-                else:
-                    failed_emails[admin_id].append((email, recipient))
-
-            time.sleep(sleep_time)
-            
+        bot.send_message(message.chat.id, f"حدث خطأ أثناء إرسال الرسائل: {e}")
 def add_admin(message):
     try:
         new_admin_id = int(message.text)
@@ -397,6 +381,5 @@ def show_admin_ids(message):
     )
     bot.send_message(message.chat.id, response_message)
 
-
 bot.polling(none_stop=True)
-
+        
