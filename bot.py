@@ -9,8 +9,7 @@ from io import BytesIO
 import threading
 import datetime
 
-bot = telebot.TeleBot("6649437885:AAEMrd81-XxOjkwjpdPpOYtjjN8nAJwFXQw")
-
+bot = telebot.TeleBot("7776128183:AAF_6eLK5vlX_GLfA02BRYX19WB-CZZTBk4")
 DEVELOPER_ID1 = 1854384004
 DEVELOPER_ID2 = 6156221763
 admins = [DEVELOPER_ID1, DEVELOPER_ID2]
