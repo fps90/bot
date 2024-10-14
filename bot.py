@@ -311,58 +311,45 @@ def show_sending_status(message):
 
     bot.send_message(message.chat.id, status_message)
 
-import smtplib
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
-from email.mime.image import MIMEImage
-import time
-import datetime
-
 def send_emails(admin_id):
     global sent_counts, failed_emails, last_send_times
 
-    # الحصول على بيانات البريد الإلكتروني من قاعدة البيانات
     email_list = admin_data[admin_id].get('email_list', [])
     password_list = admin_data[admin_id].get('password_list', [])
     subject = admin_data[admin_id].get('subject', "")
     body = admin_data[admin_id].get('body', "")
     image = admin_data[admin_id].get('image', None)
     sleep_time = admin_data[admin_id].get('sleep_time', 5)
-    receiver_email = admin_data[admin_id].get('spam_emails', [])  # تغيير الاسم إلى 'receiver_email'
+    spam_email_list = admin_data[admin_id].get('spam_emails', [])
 
-    # التحقق من وجود بيانات كافية
     if not email_list or not password_list:
         bot.send_message(admin_id, "لا توجد بيانات كافية لإرسال الرسائل.")
         return
 
-    # بدء إرسال الرسائل
     while sending_active.get(admin_id, False):
         for i, (email, password) in enumerate(zip(email_list, password_list)):
             if not sending_active.get(admin_id, False):
                 break
-
+            
             try:
                 # إنشاء رسالة جديدة لكل إرسال
                 msg = MIMEMultipart()
                 msg['From'] = email
-                msg['To'] = ', '.join(receiver_email)  # تحديث الحقل 'To'
+                msg['To'] = ', '.join(spam_email_list)
                 msg['Subject'] = subject
                 msg.attach(MIMEText(body, 'plain'))
-
+                
                 if image:
-                    # إعادة تعيين المؤشر إلى بداية الصورة
-                    image.seek(0)
-                    img = MIMEImage(image.read())
+                    img = MIMEImage(image.getvalue())
                     img.add_header('Content-ID', '<image1>')
                     msg.attach(img)
 
-                # إعداد خادم SMTP عبر STARTTLS وإرسال البريد الإلكتروني
-                with smtplib.SMTP('smtp.office365.com', 587, timeout=60) as server:
-                    server.starttls()  # بدء التشفير
-                    server.login(email, password)  # تسجيل الدخول
-                    server.sendmail(email, receiver_email, msg.as_string())  # إرسال البريد الإلكتروني
-
-                # تحديث العدادات والتوقيت
+                # إعداد خادم SMTP وإرسال البريد الإلكتروني
+                with smtplib.SMTP('smtp.gmail.com', 587, timeout=60) as server:
+                    server.starttls()
+                    server.login(email, password)
+                    server.sendmail(email, spam_email_list, msg.as_string())
+                
                 sent_counts[admin_id] += 1
                 sent_emails[admin_id].append(email)
                 email_sent_counts[admin_id][email] = email_sent_counts[admin_id].get(email, 0) + 1
@@ -370,9 +357,7 @@ def send_emails(admin_id):
                 last_send_times[admin_id] = datetime.datetime.now()
 
             except Exception as e:
-                # التعامل مع الأخطاء
                 failed_emails[admin_id].append((email, str(e)))
-                bot.send_message(admin_id, f"فشل إرسال البريد إلى {email}: {str(e)}")
 
             time.sleep(sleep_time)
 
@@ -413,5 +398,4 @@ def show_admin_ids(message):
     )
     bot.send_message(message.chat.id, response_message)
 
-bot.polling(none_stop=True)
-        
+bot.infinity_polling()
