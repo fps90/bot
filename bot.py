@@ -30,7 +30,7 @@ spam_emails = {}
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
     if message.chat.id not in admins:
-        bot.send_message(message.chat.id, "- البوت خاص بالمشتركين - قم بمراسلة المطور ليتم اعطائك الوضع الـ vip @RR8R9 , @yy66y6y .")
+        bot.send_message(message.chat.id, "- البوت خاص بالمشتركين - @RR8R9 .")
         return
 
     markup = types.InlineKeyboardMarkup()
@@ -298,14 +298,14 @@ def show_sending_status(message):
     if email_sent_counts.get(message.chat.id):
         status_message += "توزيع الرسائل على الإيميلات:\n"
         for email, count in email_sent_counts.get(message.chat.id, {}).items():
-            status_message += f"{email}: {count} رسالة\n"
+            status_message += f"{email}: {count} رسالة"
     else:
         status_message += "توزيع الرسائل على الإيميلات: لا توجد بيانات\n"
 
     if email_sent_counts.get(message.chat.id):
-        status_message += "\nحالة الحسابات:\n"
+        status_message += "\nحالة الحسابات: "
         for email, count in email_sent_counts.get(message.chat.id, {}).items():
-            status_message += f"{email}: {'شغال' if count > 0 else 'لا يتم الإرسال خطأ'}\n"
+            status_message += f"{email}: {'شغال' if count > 0 else 'لا يتم الإرسال خطأ'}"
     else:
         status_message += "\nحالة الحسابات: لا توجد بيانات"
 
@@ -332,7 +332,6 @@ def send_emails(admin_id):
                 break
             
             try:
-                # إنشاء رسالة جديدة لكل إرسال
                 msg = MIMEMultipart()
                 msg['From'] = email
                 msg['To'] = ', '.join(spam_email_list)
@@ -344,12 +343,12 @@ def send_emails(admin_id):
                     img.add_header('Content-ID', '<image1>')
                     msg.attach(img)
 
-                # إعداد خادم SMTP وإرسال البريد الإلكتروني
+                # Set up the SMTP server and send the email
                 with smtplib.SMTP('smtp.gmail.com', 587, timeout=60) as server:
                     server.starttls()
                     server.login(email, password)
                     server.sendmail(email, spam_email_list, msg.as_string())
-                
+
                 sent_counts[admin_id] += 1
                 sent_emails[admin_id].append(email)
                 email_sent_counts[admin_id][email] = email_sent_counts[admin_id].get(email, 0) + 1
@@ -398,4 +397,6 @@ def show_admin_ids(message):
     )
     bot.send_message(message.chat.id, response_message)
 
-bot.infinity_polling()
+bot.polling(none_stop=True)
+
+                               
