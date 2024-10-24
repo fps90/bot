@@ -1,245 +1,546 @@
 import telebot
-from telebot import types
 import smtplib
-import threading
 import time
+import random
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+from threading import Thread
+from datetime import datetime, timedelta
+import threading
+import telebot
 
-bot_token = '7776128183:AAF_6eLK5vlX_GLfA02BRYX19WB-CZZTBk4'
-owner_id = 7925487648
+bot_token = '7776128183:AAFsSDDwNL16_Ks84xcl-LA8udmJ4mjEPLA'
 bot = telebot.TeleBot(bot_token)
+user_data = {}
+allowed_users = ['1854384004']
+admin_id = '7925487648'
+subscription_data = {}
 
-admins = {}
-error_notifications = set()
+keyboard = telebot.types.InlineKeyboardMarkup(row_width=2)
+btn_add_recipient = telebot.types.InlineKeyboardButton('', callback_data='add_recipient')
+btn_add_sender = telebot.types.InlineKeyboardButton(' اضف ايميل شد', callback_data='add_sender')
+btn_set_subject_message = telebot.types.InlineKeyboardButton(' تعيين الموضوع الكليشة', callback_data='set_subject_message')
+btn_set_interval_message_count = telebot.types.InlineKeyboardButton(' تعيين السليب وعدد الرسائل', callback_data='set_interval_message_count')
+btn_start_sending = telebot.types.InlineKeyboardButton(' بدء الارسال', callback_data='start_sending')
+btn_show_accounts = telebot.types.InlineKeyboardButton(' ايميلاتي', callback_data='show_accounts')
+btn_show_all_info = telebot.types.InlineKeyboardButton(' عرض المعلومات', callback_data='show_all_info')
+btn_clear_all_info = telebot.types.InlineKeyboardButton(' مسح كل المعلومات', callback_data='clear_all_info')
+btn_delete_email = telebot.types.InlineKeyboardButton(' حذف ايميل محدد', callback_data='delete_email')
+btn_stop_sending = telebot.types.InlineKeyboardButton(' إيقاف الإرسال', callback_data='stop_sending')
+btn_delete_klishes = telebot.types.InlineKeyboardButton(' حذف الكلايش ودعم' , callback_data='delete_klishes')
 
-def initialize_admin_data(admin_id):
-    admins[admin_id] = {
-        'subject': '',
-        'template': '',
-        'recipients': [],
-        'emails': [],
-        'attachment': None,
-        'sending': False,
-        'sleep_time': 5
-    }
+keyboard.add(btn_start_sending, btn_delete_klishes)
+keyboard.add(btn_add_recipient, btn_add_sender)
+keyboard.add(btn_set_subject_message, btn_set_interval_message_count)
+keyboard.add(btn_show_all_info, btn_clear_all_info)
+keyboard.add(btn_delete_email, btn_show_accounts)
 
-def is_admin(user_id):
-    return user_id in admins or user_id == owner_id
 
-def send_emails(admin_id):
-    admin_data = admins[admin_id]
-    while admin_data['sending']:
-        for email_detail in admin_data['emails']:
-            email_detail = email_detail.strip()
-            if not email_detail or ':' not in email_detail:
-                bot.send_message(admin_id, f"تنسيق غير صحيح للبريد الإلكتروني وكلمة المرور: {email_detail}")
-                continue
+admin_keyboard = telebot.types.InlineKeyboardMarkup(row_width=2)
+btn_add_subscriber = telebot.types.InlineKeyboardButton(' اضف مشترك', callback_data='add_subscriber')
+btn_show_subscribers = telebot.types.InlineKeyboardButton(' عرض المشتركين', callback_data='show_subscribers')
+btn_remove_subscriber = telebot.types.InlineKeyboardButton(' حذف مشترك', callback_data='remove_subscriber')
+admin_keyboard.add(btn_add_subscriber, btn_show_subscribers, btn_remove_subscriber)
 
-            parts = email_detail.split(':')
-            if len(parts) != 2:
-                bot.send_message(admin_id, f"تنسيق غير صحيح للبريد الإلكتروني وكلمة المرور: {email_detail}")
-                continue
 
-            email, password = parts
-            try:
-                with smtplib.SMTP_SSL('smtp.gmail.com', 465) as server:
-                    server.login(email, password)
-                    for recipient in admin_data['recipients']:
-                        message = f"Subject: {admin_data['subject']}\n\n{admin_data['template']}"
-                        if admin_data['attachment']:
-                            with open(admin_data['attachment'], 'rb') as attachment:
-                                server.sendmail(email, recipient, message, attachment.read())
-                        else:
-                            server.sendmail(email, recipient, message)
-                        time.sleep(admin_data['sleep_time'])  # Delay between sending emails
-            except smtplib.SMTPAuthenticationError:
-                if email not in error_notifications:
-                    bot.send_message(admin_id, f"فشل تسجيل الدخول للبريد الإلكتروني: {email}")
-                    error_notifications.add(email)
-                admin_data['emails'].remove(email_detail)
-            except Exception as e:
-                error_message = f"خطأ أثناء محاولة إرسال البريد من {email} إلى {recipient}: {e}"
-                if error_message not in error_notifications:
-                    bot.send_message(admin_id, error_message)
-                    error_notifications.add(error_message)
-        time.sleep(admin_data['sleep_time'])  # Delay between iterations of the sending loop
-        
+duration_keyboard = telebot.types.InlineKeyboardMarkup(row_width=2)
+btn_one_day = telebot.types.InlineKeyboardButton(' يوم', callback_data='duration_1_day')
+btn_one_week = telebot.types.InlineKeyboardButton(' اسبوع', callback_data='duration_1_week')
+btn_one_month = telebot.types.InlineKeyboardButton(' شهر', callback_data='duration_1_month')
+btn_one_year = telebot.types.InlineKeyboardButton(' سنه', callback_data='duration_1_year')
+duration_keyboard.add(btn_one_day, btn_one_week, btn_one_month, btn_one_year)
 
 @bot.message_handler(commands=['start'])
 def start(message):
-    if not is_admin(message.from_user.id):
-        bot.send_message(message.chat.id, " - فقط vip @RR8R9 .")
-        return
+    user_id = str(message.from_user.id)
+    if user_id in allowed_users:
+        add_user_to_data(user_id)
+        bot.reply_to(message, 'اهلا بك في بوت الرفع الخارجي المطورين', reply_markup=keyboard)
+    else:
+        bot.reply_to(message, 'انت غير مشترك في البوت للاشتراك في البوت : @aaaswl ')
 
-    admin_id = message.from_user.id
-    if admin_id not in admins:
-        initialize_admin_data(admin_id)
 
-    markup = types.ReplyKeyboardMarkup(row_width=2)
-    btn1 = types.KeyboardButton('اضف موضوع')
-    btn2 = types.KeyboardButton('اضف كليشة')
-    btn3 = types.KeyboardButton('اضف مستلم')
-    btn4 = types.KeyboardButton('اضف ايميل')
-    btn5 = types.KeyboardButton('بدء الارسال')
-    btn6 = types.KeyboardButton('إيقاف الارسال')
-    btn7 = types.KeyboardButton('تعيين سليب')
-    btn8 = types.KeyboardButton('اضف صورة رفع')
-    btn9 = types.KeyboardButton('مسح صورة الرفع')
-    btn10 = types.KeyboardButton('عرض المعلومات')
-    btn11 = types.KeyboardButton('مسح المعلومات')  # زر جديد لمسح المعلومات
-    markup.add(btn1, btn2, btn3, btn4, btn5, btn6, btn7, btn8, btn9, btn10, btn11)
+@bot.message_handler(commands=['stop'])
+def stop(message):
+    user_id = str(message.from_user.id)
+    user_info = user_data.get(user_id)
+    if user_info:
+        user_info['stop_sending'] = True
+        bot.reply_to(message, 'تم إيقاف عملية الإرسال بنجاح!')
+    else:
+        bot.reply_to(message, 'لم تقم ببدء عملية الإرسال بعد.')
 
-    if message.from_user.id == owner_id:
-        btn12 = types.KeyboardButton('إضافة مشرف')
-        btn13 = types.KeyboardButton('عرض المشرفين')
-        btn14 = types.KeyboardButton('إزالة مشرف')
-        markup.add(btn12, btn13, btn14)
+@bot.message_handler(commands=['admin'])
+def show_admin_commands(message):
+    if str(message.from_user.id) == '7925487648':  
+        bot.send_message(message.chat.id, 'اختر الأمر الذي ترغب في تنفيذه:', reply_markup=admin_keyboard)
+    else:
+        bot.reply_to(message, 'أنت لست مطورًا مصرحًا')
 
-    bot.send_message(message.chat.id, "ok :", reply_markup=markup)
 
-@bot.message_handler(func=lambda message: True)
-def handle_message(message):
-    admin_id = message.from_user.id
 
-    if not is_admin(admin_id):
-        bot.send_message(message.chat.id, "لا تملك صلاحيات للوصول إلى هذا الأمر.")
-        return
 
-    if admin_id not in admins:
-        initialize_admin_data(admin_id)
+@bot.callback_query_handler(func=lambda call: True)
+def handle_callback(call):
+    user_id = str(call.from_user.id)
+    add_user_to_data(user_id)
+    user_info = user_data[user_id]
 
-    admin_data = admins[admin_id]
+    if call.data == 'add_recipient':
+        bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text="""
+        قم بأرسال ايميلات الشركة بهذه الطريقة:
+email@tele.com email2@tele.com""")
+        bot.register_next_step_handler(call.message, add_recipient, user_id)
+    elif call.data == 'add_sender':
+        bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text="""
+        قم بارسال ايميلات الشد بهذه الطريقة:
+email1:pass1
+email2:pass2""")
+        bot.register_next_step_handler(call.message, add_sender, user_id)
+    elif call.data == 'set_subject_message':
+        bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text='الرجاء إرسال الموضوع والكليشة بهذه الطريقة: الموضوع:الكليشة')
+        bot.register_next_step_handler(call.message, set_subject_message, user_id)
+    elif call.data == 'set_interval_message_count':
+        bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text='الرجاء إرسال السليب وعدد الرسائل بهذه الطريقة: السليب:عدد الرسائل')
+        bot.register_next_step_handler(call.message, set_interval_message_count, user_id)
+    elif call.data == 'start_sending':
+        bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text='جارٍ بدء إرسال الرسائل...')
+        start_sending(user_id)
+    elif call.data == 'show_accounts':
+        show_accounts(call.message, user_id)
+    elif call.data == 'show_all_info':
+        show_all_info(call.message, user_id)
+    elif call.data == 'clear_all_info':
+        clear_all_info(call.message, user_id)
+        bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text='تم مسح جميع المعلومات بنجاح!')
+    elif call.data == 'delete_email':
+        bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text='الرجاء إرسال رقم البريد الإلكتروني الذي ترغب في حذفه.')
+        bot.register_next_step_handler(call.message, delete_email, user_id)
+    elif call.data == 'stop_sending':
+        stop_sending(call.message)
+    elif call.data == 'add_subscriber':
+        bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text='الرجاء إرسال ID الشخص الذي تريد اضافته لقائمة المشتركين')
+        bot.register_next_step_handler(call.message, add_subscriber)
+    elif call.data == 'show_subscribers':
+        show_subscribers(call.message)
+    elif call.data == 'remove_subscriber':
+        bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text='الرجاء إرسال ID الشخص الذي تريد حذفه من قائمة المشتركين')
+        bot.register_next_step_handler(call.message, remove_subscriber)
+    elif call.data.startswith('duration_'):
+        handle_subscription_duration(call, user_id, call.data)
+    elif call.data == 'add_more_subject_message':
+        bot.send_message(user_id, 'الرجاء إرسال الموضوع والكليشة بالطريقة التالية: الموضوع:الكليشة')
+        bot.register_next_step_handler(call.message, set_subject_message, user_id)
+    elif call.data == 'finish_subject_message':
+        bot.send_message(user_id, 'تم إنهاء تعيين المواضيع والكليشة.')
+        show_all_info(call.message, user_id)
+    elif call.data == 'delete_klishes':
+        delete_klishes(call.message, user_id)
 
-    if message.text == 'اضف موضوع':
-        msg = bot.reply_to(message, "أدخل الموضوع:")
-        bot.register_next_step_handler(msg, add_subject)
-    elif message.text == 'اضف كليشة':
-        msg = bot.reply_to(message, "أدخل الكليشة:")
-        bot.register_next_step_handler(msg, add_template)
-    elif message.text == 'اضف مستلم':
-        msg = bot.reply_to(message, "أدخل عنوان البريد الإلكتروني للمستلم:")
-        bot.register_next_step_handler(msg, add_recipient)
-    elif message.text == 'اضف ايميل':
-        msg = bot.reply_to(message, "أدخل الإيميل وكلمة المرور بصيغة ايميل:باسورد")
-        bot.register_next_step_handler(msg, add_email)
-    elif message.text == 'بدء الارسال':
-        if not admin_data['subject'] or not admin_data['template'] or not admin_data['recipients'] or not admin_data['emails']:
-            bot.send_message(message.chat.id, "الرجاء التأكد من إدخال جميع البيانات.")
-        else:
-            admin_data['sending'] = True
-            threading.Thread(target=send_emails, args=(admin_id,)).start()
-            bot.send_message(message.chat.id, "تم بدء إرسال الرسائل.")
-    elif message.text == 'إيقاف الارسال':
-        admin_data['sending'] = False
-        bot.send_message(message.chat.id, "تم إيقاف إرسال الرسائل.")
-    elif message.text == 'تعيين سليب':
-        msg = bot.reply_to(message, "أدخل وقت السليب بالثواني:")
-        bot.register_next_step_handler(msg, set_sleep_time)
-    elif message.text == 'اضف صورة رفع':
-        msg = bot.reply_to(message, "قم بإرسال الصورة:")
-        bot.register_next_step_handler(msg, add_attachment)
-    elif message.text == 'مسح صورة الرفع':
-        admin_data['attachment'] = None
-        bot.send_message(message.chat.id, "تم مسح صورة الرفع.")
-    elif message.text == 'عرض المعلومات':
-        admin_data = admins[admin_id]  # تأكد من أن البيانات محدثة
-        info = (
-            f"الموضوع: {admin_data['subject']}\n"
-            f"الكليشة: {admin_data['template']}\n"
-            f"المستلمون: {', '.join(admin_data['recipients'])}\n"
-            f"الإيميلات: {', '.join(admin_data['emails'])}\n"
-            f"صورة الرفع: {'موجودة' if admin_data['attachment'] else 'غير موجودة'}\n"
-            f"وقت السليب: {admin_data['sleep_time']} ثواني"
-        )
-        bot.send_message(message.chat.id, info)
-    elif message.text == 'مسح المعلومات':  # وظيفة لمسح المعلومات
-        admins[admin_id] = {
-            'subject': '',
-            'template': '',
+
+
+def add_user_to_data(user_id):
+    if user_id not in user_data:
+        user_data[user_id] = {
+            'email_senders': [],
+            'email_passwords': [],
             'recipients': [],
-            'emails': [],
-            'attachment': None,
-            'sending': False,
-            'sleep_time': 5
+            'email_subjects': [],
+            'email_messages': [],
+            'interval_seconds': 0,
+            'message_count': 0,
+            'current_subject': '',
+            'current_message': ''
         }
-        bot.send_message(message.chat.id, "تم مسح جميع المعلومات.")
-    elif message.text == 'إضافة مشرف':
-        if message.from_user.id == owner_id:
-            msg = bot.reply_to(message, "أدخل معرف المشرف الجديد:")
-            bot.register_next_step_handler(msg, add_admin)
-    elif message.text == 'عرض المشرفين':
-        if message.from_user.id == owner_id:
-            show_admins(message)
-    elif message.text == 'إزالة مشرف':
-        if message.from_user.id == owner_id:
-            msg = bot.reply_to(message, "أدخل معرف المشرف الذي تريد إزالته:")
-            bot.register_next_step_handler(msg, remove_admin)
 
-def add_subject(message):
-    admin_id = message.from_user.id
-    admins[admin_id]['subject'] = message.text
-    bot.send_message(message.chat.id, "تم إضافة الموضوع.")
 
-def add_template(message):
-    admin_id = message.from_user.id
-    admins[admin_id]['template'] = message.text
-    bot.send_message(message.chat.id, "تم إضافة الكليشة.")
-
-def add_recipient(message):
-    admin_id = message.from_user.id
-    admins[admin_id]['recipients'].append(message.text)
-    bot.send_message(message.chat.id, "تم إضافة المستلم.")
-
-def add_email(message):
-    admin_id = message.from_user.id
-    email_detail = message.text.strip()
-    if ':' in email_detail:
-        admins[admin_id]['emails'].append(email_detail)
-        bot.send_message(message.chat.id, "تم إضافة الإيميل وكلمة المرور.")
+def add_recipient(message, user_id):
+    recipients = message.text.split()
+    if recipients:
+        user_data[user_id]['recipients'].clear()  
+        user_data[user_id]['recipients'].extend(recipients)
+        bot.reply_to(message, 'تمت إضافة الحسابات المستلمة بنجاح!')
     else:
-        bot.send_message(message.chat.id, "الرجاء إدخال الإيميل وكلمة المرور بصيغة صحيحة.")
+        bot.reply_to(message, 'خطأ في إضافة الحسابات المستلمة. الرجاء المحاولة مرة أخرى.')
 
-def set_sleep_time(message):
-    admin_id = message.from_user.id
+def add_sender(message, user_id):
+    email_password_pairs = message.text.split('\n')  
+    success_count = 0
+    failure_count = 0
+    
+    for pair in email_password_pairs:
+        sender_email_password = pair.split(':')
+        if len(sender_email_password) == 2:
+            sender_email = sender_email_password[0].strip()
+            sender_password = sender_email_password[1].strip()
+            if sender_email and sender_password:
+                user_data[user_id]['email_senders'].append(sender_email)
+                user_data[user_id]['email_passwords'].append(sender_password)
+                success_count += 1
+            else:
+                failure_count += 1
+        else:
+            failure_count += 1
+    
+    if success_count > 0:
+        bot.reply_to(message, f'تمت إضافة {success_count} حساب مرسل بنجاح!')
+    if failure_count > 0:
+        bot.reply_to(message, f'حدث خطأ في إضافة {failure_count} حساب مرسل. الرجاء التحقق من الصيغة الصحيحة (Email:pass).')
+
+def set_subject_message(message, user_id):
     try:
-        admins[admin_id]['sleep_time'] = int(message.text)
-        bot.send_message(message.chat.id, f"تم تعيين وقت السليب إلى {admins[admin_id]['sleep_time']} ثواني.")
+        subject, email_message = message.text.split(':', 1)
+        user_data[user_id]['current_subject'] = subject.strip()
+        user_data[user_id]['current_message'] = email_message.strip()
+        
+        bot.reply_to(message, 'تم تعيين الموضوع والكليشة بنجاح! الآن، الرجاء تعيين إيميل الدعم لهذه الكليشة.')
+        bot.register_next_step_handler(message, set_recipient_email, user_id)
     except ValueError:
-        bot.send_message(message.chat.id, "الرجاء إدخال عدد صحيح.")
+        bot.reply_to(message, 'خطأ في الصيغة. الرجاء إرسال الموضوع والكليشة بهذه الطريقة: الموضوع:الكليشة')
 
-def add_attachment(message):
-    admin_id = message.from_user.id
-    if message.content_type == 'photo':
-        file_info = bot.get_file(message.photo[-1].file_id)
-        downloaded_file = bot.download_file(file_info.file_path)
-        attachment_path = f"attachment{admin_id}.jpg"
-        with open(attachment_path, 'wb') as new_file:
-            new_file.write(downloaded_file)
-        admins[admin_id]['attachment'] = attachment_path
-        bot.send_message(message.chat.id, "تم إضافة صورة الرفع.")
+def set_recipient_email(message, user_id):
+    if len(user_data[user_id]['email_subjects']) >= 5:
+        bot.reply_to(message, 'لا يمكن إضافة أكثر من 5 مواضيع وكليشة.')
+        return
+    
+    recipient_email = message.text.strip()
+    user_data[user_id]['email_subjects'].append(user_data[user_id]['current_subject'])
+    user_data[user_id]['email_messages'].append(user_data[user_id]['current_message'])
+    user_data[user_id]['recipients'].append(recipient_email)
+    
+    keyboard = types.InlineKeyboardMarkup(row_width=2)
+    yes_button = types.InlineKeyboardButton(text="نعم", callback_data='add_more_subject_message')
+    no_button = types.InlineKeyboardButton(text="لا", callback_data='finish_subject_message')
+    keyboard.add(yes_button, no_button)
+    
+    bot.reply_to(message, 'تم تعيين إيميل الدعم بنجاح! هل تريد تعيين كليشة ثانية؟', reply_markup=keyboard)
+
+@bot.callback_query_handler(func=lambda call: call.data == 'add_more_subject_message')
+def add_more_subject_message(call):
+    user_id = call.message.chat.id
+    bot.answer_callback_query(call.id)
+    
+    if len(user_data[user_id]['email_subjects']) >= 5:
+        bot.send_message(user_id, 'لا يمكن إضافة أكثر من 5 مواضيع وكليشة.')
     else:
-        bot.send_message(message.chat.id, "يرجى إرسال صورة.")
+        bot.send_message(user_id, 'الرجاء إرسال الموضوع والكليشة بالطريقة التالية: الموضوع:الكليشة')
 
-def add_admin(message):
-    if message.from_user.id == owner_id:
-        new_admin_id = int(message.text)
-        if new_admin_id not in admins:
-            initialize_admin_data(new_admin_id)
-            bot.send_message(message.chat.id, f"تم إضافة المشرف الجديد بالمعرف {new_admin_id}.")
+@bot.callback_query_handler(func=lambda call: call.data == 'finish_subject_message')
+def finish_subject_message(call):
+    user_id = call.message.chat.id
+    bot.answer_callback_query(call.id, "تم إنهاء تعيين المواضيع والكليشة.")
+    show_all_info(call.message, user_id)
+
+def set_interval_message_count(message, user_id):
+    try:
+        interval_seconds, message_count = message.text.split(':', 1)
+        user_data[user_id]['interval_seconds'] = int(interval_seconds)
+        user_data[user_id]['message_count'] = int(message_count)
+        bot.reply_to(message, 'تم تعيين السليب وعدد الرسائل بنجاح!')
+        bot.delete_message(chat_id=message.chat.id, message_id=message.message_id)
+    except ValueError:
+        bot.reply_to(message, 'خطأ في الصيغة. الرجاء إرسال السليب وعدد الرسائل بهذه الطريقة: السليب:عدد الرسائل')
+
+
+def delete_email(message, user_id):
+    try:
+        index = int(message.text) - 1
+        if index >= 0 and index < len(user_data[user_id]['email_senders']):
+            del user_data[user_id]['email_senders'][index]
+            del user_data[user_id]['email_passwords'][index]
+            bot.reply_to(message, 'تم حذف البريد الإلكتروني بنجاح!')
         else:
-            bot.send_message(message.chat.id, "المشرف موجود بالفعل.")
+            bot.reply_to(message, 'خطأ في حذف البريد الإلكتروني. الرجاء المحاولة مرة أخرى.')
+    except ValueError:
+        bot.reply_to(message, 'خطأ في التحويل إلى رقم. يرجى إدخال رقم صحيح لحذف البريد الإلكتروني.')
 
-def show_admins(message):
-    if message.from_user.id == owner_id:
-        admin_list = "\n".join(str(admin) for admin in admins.keys())
-        bot.send_message(message.chat.id, f"المشرفين الحاليين:\n{admin_list}")
 
-def remove_admin(message):
-    if message.from_user.id == owner_id:
-        admin_id = int(message.text)
-        if admin_id in admins:
-            del admins[admin_id]
-            bot.send_message(message.chat.id, f"تم إزالة المشرف بالمعرف {admin_id}.")
+import time
+import threading
+from telebot import types, TeleBot
+import smtplib
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from telebot.apihelper import ApiTelegramException
+from ratelimit import limits, sleep_and_retry
+
+ONE_MINUTE = 60
+
+
+@sleep_and_retry
+@limits(calls=60, period=ONE_MINUTE)
+def send_limited_message(*args, **kwargs):
+    return bot.send_message(*args, **kwargs)
+
+@sleep_and_retry
+@limits(calls=60, period=ONE_MINUTE)
+def edit_limited_message_text(*args, **kwargs):
+    return bot.edit_message_text(*args, **kwargs)
+
+def send_email(sender_email, sender_password, recipient, subject, message):
+    msg = MIMEMultipart()
+    msg['From'] = sender_email
+    msg['To'] = recipient
+    msg['Subject'] = subject
+    msg.attach(MIMEText(message, 'plain'))
+
+    msg.add_header('User-Agent', 'iPhone Mail (14F5089a)')
+
+    try:
+        server = smtplib.SMTP('smtp.gmail.com', 587)
+        server.starttls()
+        server.login(sender_email, sender_password)
+        server.send_message(msg)
+        server.quit()
+        return True
+    except Exception as e:
+        print(f"Error sending email from {sender_email} to {recipient}: {str(e)}")
+        return False
+
+def send_emails(user_id, user_info):
+    success_count = 0
+    error_count = 0
+    prev_message_id = None
+    blocked_senders = set()
+    messages_sent = 0
+
+    total_messages = user_info['message_count']
+    klishes_subjects = list(zip(user_info['email_subjects'], user_info['email_messages'], user_info['recipients']))
+
+    klisha_sent_counts = {index: 0 for index in range(len(klishes_subjects))}
+
+    initial_message = ("بدأ عملية الارسال، سوف يتم الارسال بشكل عمودي ..\n"
+                       "ارسل /stop للايقاف")
+    
+    keyboard = types.InlineKeyboardMarkup(row_width=2)
+    stop_button = types.InlineKeyboardButton(text="", callback_data='stop_sending')
+    keyboard.add(stop_button)
+    
+    sent_message = send_limited_message(user_id, initial_message, reply_markup=keyboard)
+    prev_message_id = sent_message.message_id
+
+    while messages_sent < total_messages:
+        if len(blocked_senders) == len(user_info['email_senders']):
+            final_message = (f"تم الانتهاء.\n"
+                             f"تم ارسال: {success_count}\n"
+                             f"فشل اثناء: {error_count}\n"
+                             "جميع حسابات الإرسال محظورة.")
+            edit_limited_message_text(chat_id=user_id, message_id=prev_message_id, text=final_message)
+            return
+
+        for sender, password in zip(user_info['email_senders'], user_info['email_passwords']):
+            if sender in blocked_senders:
+                continue
+
+            try:
+                if user_info.get('stop_sending'):
+                    del user_info['stop_sending']
+                    final_message = (f"تم إيقاف عملية الإرسال.\n"
+                                     f"تم إرسال: {success_count}\n"
+                                     f"فشل أثناء: {error_count}\n")
+                    send_limited_message(user_id, final_message)
+                    return
+
+                subject_index = messages_sent % len(klishes_subjects)
+                subject, message, recipient_email = klishes_subjects[subject_index]
+                
+                if send_email(sender, password, recipient_email, subject, message):
+                    success_count += 1
+                    messages_sent += 1
+                    klisha_sent_counts[subject_index] += 1  
+                else:
+                    error_count += 1
+                    blocked_senders.add(sender)
+                    send_limited_message(user_id, f'الإيميل {sender} محظور، تم التوقف عن استخدامه.')
+
+                if messages_sent >= total_messages:
+                    break
+
+            except Exception as e:
+                error_count += 1
+                blocked_senders.add(sender)
+                send_limited_message(user_id, f'الإيميل {sender} محظور بسبب خطأ: {str(e)}, تم التوقف عن استخدامه.')
+
+            remaining_messages = total_messages - messages_sent
+            
+            keyboard = types.InlineKeyboardMarkup(row_width=2)
+            sent_button = types.InlineKeyboardButton(text=f"تم ارسال: {success_count}", callback_data='noop')
+            error_button = types.InlineKeyboardButton(text=f"فشل اثناء: {error_count}", callback_data='noop')
+            remaining_button = types.InlineKeyboardButton(text=f"المتبقي: {remaining_messages}", callback_data='noop')
+            stop_button = types.InlineKeyboardButton(text="", callback_data='stop_sending')
+            keyboard.add(sent_button, error_button, remaining_button, stop_button)
+
+            for index, count in klisha_sent_counts.items():
+                klishe_button = types.InlineKeyboardButton(text=f"كليشة {index + 1}: {count}", callback_data='noop')
+                keyboard.add(klishe_button)
+
+            status_message = ("سوف تكتمل العملية قريبا!\n"
+                              "ارسل /stop للايقاف")
+            try:
+                edit_limited_message_text(chat_id=user_id, message_id=prev_message_id, text=status_message, reply_markup=keyboard)
+            except ApiTelegramException as e:
+                if e.result.status_code == 429:
+                    retry_after = int(e.result.json()['parameters']['retry_after'])
+                    time.sleep(retry_after)
+                    edit_limited_message_text(chat_id=user_id, message_id=prev_message_id, text=status_message, reply_markup=keyboard)
+
+        time.sleep(user_info['interval_seconds'])
+
+    final_message = (f"تم الانتهاء.\n"
+                     f"تم ارسال: {success_count}\n"
+                     f"فشل اثناء: {error_count}\n")
+    edit_limited_message_text(chat_id=user_id, message_id=prev_message_id, text=final_message)
+
+@bot.callback_query_handler(func=lambda call: call.data == 'stop_sending')
+def stop_sending_callback(call):
+    user_id = call.message.chat.id
+    user_data[user_id]['stop_sending'] = True
+    bot.answer_callback_query(call.id, "تم إيقاف الإرسال.")
+
+def start_sending(user_id):
+    user_info = user_data[user_id]
+    if len(user_info['recipients']) == 0:
+        send_limited_message(user_id, 'لا يوجد حسابات مستلمة. الرجاء إضافة حساب مستلم أولاً.')
+        return
+
+    if len(user_info['email_senders']) == 0:
+        send_limited_message(user_id, 'لا يوجد حسابات مرسلة. الرجاء إضافة حساب مرسل أولاً.')
+        return
+
+    if len(user_info['email_subjects']) == 0 or len(user_info['email_messages']) == 0:
+        send_limited_message(user_id, 'لم يتم تعيين المواضيع أو الكليشة. الرجاء تعيين المواضيع والكليشة أولاً.')
+        return
+
+    if user_info['message_count'] == 0:
+        send_limited_message(user_id, 'لم يتم تعيين عدد الرسائل. الرجاء تعيين عدد الرسائل أولاً.')
+        return
+
+    sending_thread = threading.Thread(target=send_emails, args=(user_id, user_info))
+    sending_thread.start()
+
+
+
+MAX_MESSAGE_LENGTH = 4096  
+
+def show_accounts(message, user_id):
+    user_info = user_data[user_id]
+    if len(user_info['email_senders']) == 0:
+        bot.edit_message_text(chat_id=message.chat.id, message_id=message.message_id, text='لم يتم إضافة أي حسابات مرسلة حتى الآن.')
+    else:
+        accounts = []
+        for i, sender in enumerate(user_info['email_senders']):
+            accounts.append(f'حساب رقم {i + 1}: {sender}')
+        
+
+        full_message = '\n'.join(accounts)
+       
+        if len(full_message) > MAX_MESSAGE_LENGTH:
+            chunks = [full_message[i:i+MAX_MESSAGE_LENGTH] for i in range(0, len(full_message), MAX_MESSAGE_LENGTH)]
+            for chunk in chunks:
+                bot.send_message(chat_id=message.chat.id, text=chunk)
         else:
-            bot.send_message(message.chat.id, "المشرف غير موجود.")
+            bot.edit_message_text(chat_id=message.chat.id, message_id=message.message_id, text=full_message)
 
-bot.polling(none_stop=True)
+
+
+def show_all_info(message, user_id):
+    user_info = user_data[user_id]
+    info_message = f"إيميلات الدعم:\n"
+    for i, recipient in enumerate(user_info['recipients']):
+        info_message += f"ايميل دعم لكليشة {i + 1}: {recipient}\n"
+    info_message += f"\nالموضوعات والكليشة:\n\n"
+    for i, (subject, msg) in enumerate(zip(user_info['email_subjects'], user_info['email_messages'])):
+        info_message += f"الموضوع {i + 1}: {subject}\nالكليشة {i + 1}: {msg}\n\n"
+    info_message += f"السليب: {user_info['interval_seconds']} ثانية\n\n"
+    info_message += f"عدد الرسائل: {user_info['message_count']}\n"
+    
+    if len(info_message) > 4096:
+        parts = [info_message[i:i+4096] for i in range(0, len(info_message), 4096)]
+        for part in parts:
+            bot.send_message(message.chat.id, part)
+    else:
+        bot.send_message(message.chat.id, info_message)
+
+
+def clear_all_info(message, user_id):
+    user_data[user_id] = {
+        'email_senders': [],
+        'email_passwords': [],
+        'recipients': [],
+        'email_subjects': [],
+        'email_messages': [],
+        'interval_seconds': 0,
+        'message_count': 0,
+        'current_subject': '',
+        'current_message': ''
+    }
+    
+def delete_klishes(message, user_id):
+    user_data[user_id]['email_subjects'].clear()
+    user_data[user_id]['email_messages'].clear()
+    user_data[user_id]['recipients'].clear()
+    bot.edit_message_text(chat_id=message.chat.id, message_id=message.message_id, text='تم حذف جميع الكليشات والمواضيع وإيميلات المستلمين بنجاح!')
+
+def add_subscriber(message):
+    new_user_id = message.text
+    bot.reply_to(message, 'اختار مدة الاشتراك', reply_markup=duration_keyboard)
+    subscription_data['temp_user_id'] = new_user_id
+
+
+def handle_subscription_duration(call, admin_id, duration):
+    temp_user_id = subscription_data.get('temp_user_id')
+    if not temp_user_id:
+        bot.send_message(admin_id, 'لم يتم العثور على المستخدم. الرجاء المحاولة مرة أخرى.')
+        return
+
+    duration_map = {
+        'duration_1_day': timedelta(days=1),
+        'duration_1_week': timedelta(weeks=1),
+        'duration_1_month': timedelta(days=30),
+        'duration_1_year': timedelta(days=365)
+    }
+    duration_timedelta = duration_map.get(duration)
+    if not duration_timedelta:
+        bot.send_message(admin_id, 'مدة اشتراك غير صالحة. الرجاء المحاولة مرة أخرى.')
+        return
+
+    expiration_date = datetime.now() + duration_timedelta
+    allowed_users.append(temp_user_id)
+    subscription_data[temp_user_id] = expiration_date
+    bot.send_message(admin_id, f'تم إضافة المستخدم {temp_user_id} بنجاح لمدة {duration_timedelta.days} يوم.')
+
+
+    Thread(target=remove_user_after_duration, args=(temp_user_id, duration_timedelta)).start()
+
+
+def remove_user_after_duration(user_id, duration):
+    time.sleep(duration.total_seconds())
+    if user_id in allowed_users:
+        allowed_users.remove(user_id)
+        del subscription_data[user_id]
+        bot.send_message(admin_id, f'تمت إزالة المستخدم {user_id} بعد انتهاء مدة الاشتراك.')
+
+
+def show_subscribers(message):
+    if not subscription_data:
+        bot.reply_to(message, 'لا يوجد مشتركون حاليًا.')
+        return
+
+    subscribers_info = []
+    for user_id, expiration_date in subscription_data.items():
+        subscribers_info.append(f'ID: {user_id}, مدة الاشتراك: {expiration_date}')
+
+    bot.reply_to(message, '\n'.join(subscribers_info))
+
+
+def remove_subscriber(message):
+    user_id = message.text
+    if user_id in allowed_users:
+        allowed_users.remove(user_id)
+        del subscription_data[user_id]
+        bot.reply_to(message, f'تم حذف المستخدم {user_id} بنجاح.')
+    else:
+        bot.reply_to(message, 'المستخدم غير موجود في قائمة المشتركين.')
+
+
+bot.polling()
