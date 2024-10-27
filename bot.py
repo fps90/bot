@@ -57,7 +57,7 @@ def start(message):
         add_user_to_data(user_id)
         bot.reply_to(message, 'اهلا بك في بوت الرفع الخارجي المطورين', reply_markup=keyboard)
     else:
-        bot.reply_to(message, 'انت غير مشترك في البوت للاشتراك في البوت : @aaaswl ')
+        bot.reply_to(message, 'انت غير مشترك في البوت للاشتراك في البوت : @RR8R9 ')
 
 
 @bot.message_handler(commands=['stop'])
