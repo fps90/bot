@@ -9,11 +9,11 @@ from datetime import datetime, timedelta
 import threading
 import telebot
 
-bot_token = '7776128183:AAFsSDDwNL16_Ks84xcl-LA8udmJ4mjEPLA'
+bot_token = '6604522716:AAGteURuG9jY9spCvnCA_CqrgHJS4_bB398'
 bot = telebot.TeleBot(bot_token)
 user_data = {}
 allowed_users = ['1854384004']
-admin_id = '7925487648'
+admin_id = '1854384004'
 subscription_data = {}
 
 keyboard = telebot.types.InlineKeyboardMarkup(row_width=2)
@@ -72,7 +72,7 @@ def stop(message):
 
 @bot.message_handler(commands=['admin'])
 def show_admin_commands(message):
-    if str(message.from_user.id) == '7925487648':  
+    if str(message.from_user.id) == '1854384004':  
         bot.send_message(message.chat.id, 'اختر الأمر الذي ترغب في تنفيذه:', reply_markup=admin_keyboard)
     else:
         bot.reply_to(message, 'أنت لست مطورًا مصرحًا')
