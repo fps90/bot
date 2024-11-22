@@ -1,0 +1,16 @@
+{
+    "name": "Python Bot Environment",
+    "image": "python:3.9",  // صورة Docker تدعم Python 3.9
+    "postCreateCommand": "pip install -r requirements.txt",  // تثبيت المكتبات المطلوبة
+    "customizations": {
+        "vscode": {
+            "extensions": ["ms-python.python"]  // إضافة دعم Python
+        }
+    },
+    "settings": {
+        "python.defaultInterpreterPath": "/usr/local/bin/python"
+    },
+    "runArgs": ["-d"],  // تشغيل البيئة بشكل مستمر
+    "forwardPorts": [5000],  // المنفذ الذي سيعمل عليه البوت
+    "onCreateCommand": "python bot.py"  // أمر تشغيل البوت
+}
